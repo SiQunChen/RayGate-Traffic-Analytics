@@ -23,15 +23,15 @@ clustering_results/
 
 # 忽略各個資料夾中的大型原始資料檔和中介資料檔
 # 使用 / 開頭確保只作用於根目錄下的特定資料夾，避免意外忽略其他地方的檔案
-/台鐵/*.csv
-/台鐵/*.txt
-/市區公車/*.csv
-/市區公車/*.xlsx
-/市區公車/*.txt
-/公路客運/日統/*.xlsx
+/tra/*.csv
+/tra/*.txt
+/city_bus/*.csv
+/city_bus/*.xlsx
+/city_bus/*.txt
+/intercity_bus/jitong/*.xlsx
 
 # 忽略特定路徑下的資料檔
-/公路客運/嘉義/data/*.xlsx
+/intercity_bus/chiayi/data/*.xlsx
 
 # 忽略特定圖片檔案 (如果它們不在被忽略的資料夾中)
 # 根據您的結構，下面的規則其實已經被 `*/output/` 等涵蓋了，但為了清晰可以保留

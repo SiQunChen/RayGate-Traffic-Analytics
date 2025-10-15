@@ -129,14 +129,16 @@ def normalize_station_names(df):
     return df
 
 # --- 主函式 (與前一版相似) ---
-def main():
+def main(input_dir='data', output_file='unified_data.csv'):
     """
-    主函式，讀取所有檔案並進行處理與清理
+    主函式，讀取所有檔案並進行處理與清理。
+    Args:
+        input_dir (str): 存放原始 Excel 檔案的資料夾路徑。
+        output_file (str): 處理後要儲存的 CSV 檔案路徑。
     """
-    files = glob.glob('data/*.xlsx')
+    files = glob.glob(os.path.join(input_dir, '*.xlsx'))
     if not files:
-        print("錯誤：在 'data' 資料夾中找不到任何 .xlsx 檔案。")
-        print("請確認您的 Excel 檔案都放在 'data' 資料夾中。")
+        print(f"錯誤：在 '{input_dir}' 資料夾中找不到任何 .xlsx 檔案。")
         return
 
     all_data = []
@@ -222,4 +224,4 @@ def main():
         print("\n處理完成，但沒有產生任何資料。請檢查您的檔案內容與格式。")
 
 if __name__ == '__main__':
-    main()
+    main(input_dir='data', output_file='unified_data.csv')

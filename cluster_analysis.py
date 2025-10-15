@@ -128,7 +128,7 @@ def unify_ticket_type(ticket_name):
     else:
         return '其他'
 
-def load_and_preprocess_data(filepath='./市區公車/unified_data.csv'):
+def load_and_preprocess_data(filepath='./city_bus/unified_data.csv'): # <--- 路徑已修改
     """
     載入並預處理市區公車刷卡資料。
     """

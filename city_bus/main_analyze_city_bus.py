@@ -379,11 +379,14 @@ def plot_elderly_pattern_and_destinations(df):
     plt.savefig(os.path.join(output_folder, '10_長者愛心乘客分析.png'))
     plt.close()
 
-# --- 3. 主程式執行區塊 ---
-if __name__ == '__main__':
-    bus_data = load_and_preprocess_data()
+def run_analysis(filepath='unified_data.csv'):
+    """
+    執行市區公車主要分析的函式。
+    Args:
+        filepath (str): 已整合好的資料檔案路徑。
+    """
+    bus_data = load_and_preprocess_data(filepath)
     if bus_data is not None:
-        # 【新增】提示使用者即將開始輸出分析結果
         print("\n==============================================")
         print("          開始輸出各項分析結果          ")
         print("==============================================\n")
@@ -398,4 +401,9 @@ if __name__ == '__main__':
         plot_top_od_pairs(bus_data)
         plot_student_pattern_per_route(bus_data)
         plot_elderly_pattern_and_destinations(bus_data)
-        print("\n所有圖表已成功產生並儲存於 '{}' 資料夾中。".format(output_folder))
+        
+        print(f"\n所有圖表已成功產生並儲存於 '{output_folder}' 資料夾中。")
+
+# --- 主程式執行區塊 ---
+if __name__ == '__main__':
+    run_analysis(filepath='unified_data.csv')

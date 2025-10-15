@@ -1,7 +1,10 @@
+# city_bus/station_analyzer.py (修改後的版本)
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import argparse # 匯入 argparse
 
 # --- 全域設定 ---
 # 設定 Matplotlib 使用支援中文的字體，以避免圖表中的中文顯示為亂碼
@@ -246,19 +249,33 @@ def plot_evening_origins(df, station_name, output_folder='douliu_charts', top_n=
     print(f"傍晚通勤起始站圖表已儲存至: {output_filename}")
 
 
+def run_analysis(filepath, station_name):
+    """
+    執行指定市區公車站點的完整分析。
+    Args:
+        filepath (str): 已整合的市區公車資料檔案路徑。
+        station_name (str): 要分析的站點名稱。
+    """
+    bus_data = load_data(filepath=filepath)
+
+    if bus_data is not None:
+        # 【修改點】動態建立輸出資料夾
+        output_folder = os.path.join('city_bus', f'{station_name}_analysis_charts')
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+            print(f"已為 {station_name} 建立分析結果資料夾: {output_folder}")
+
+        # 將 output_folder 傳遞給各個分析函式
+        analyze_and_plot_by_time_and_day_type(bus_data, station_name=station_name, output_folder=output_folder)
+        plot_morning_destinations(bus_data, station_name=station_name, output_folder=output_folder)
+        plot_evening_origins(bus_data, station_name=station_name, output_folder=output_folder)
+        print(f"\n✅ {station_name} 的所有分析圖表已產生完畢。")
+
 # --- 主程式執行區塊 ---
 if __name__ == '__main__':
-    # 讀取資料
-    bus_data = load_data(filepath='unified_data.csv')
+    parser = argparse.ArgumentParser(description="執行特定市區公車站點的深度分析。")
+    parser.add_argument('--station', type=str, default='斗六火車站', help="要分析的站點名稱。")
+    parser.add_argument('--data', type=str, default='city_bus/unified_data.csv', help="已整合的資料檔案路徑。")
+    args = parser.parse_args()
 
-    # 如果資料成功讀取，則進行分析與繪圖
-    if bus_data is not None:
-        # 您可以在這裡更改要分析的車站名稱
-        TARGET_STATION = '斗六火車站'
-        
-        # 執行原有的時段流量分析與文字報告
-        analyze_and_plot_by_time_and_day_type(bus_data, station_name=TARGET_STATION)
-        
-        # 執行新增的通勤熱點分析
-        plot_morning_destinations(bus_data, station_name=TARGET_STATION)
-        plot_evening_origins(bus_data, station_name=TARGET_STATION)
+    run_analysis(filepath=args.data, station_name=args.station)
