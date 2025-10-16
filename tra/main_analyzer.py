@@ -1,11 +1,10 @@
-# 這是主分析檔案：main_analysis.py (已加入區間篩選與斗六站尖峰分析)
+# tra/main_analysis_tra.py (修正後的全檔)
 
 import matplotlib
 matplotlib.use('Agg')
 
 import pandas as pd
 import dask.dataframe as dd
-from data_loader import load_all_data
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import seaborn as sns 
@@ -50,15 +49,19 @@ setup_chinese_font()
 # ==============================================================================
 # 核心步驟：載入並準備所有資料
 # ==============================================================================
-all_data = load_all_data()
-
 def run_analysis(data_path):
     """
     執行台鐵主要分析的函式。
     Args:
         data_path (str): 清理過的台鐵資料檔案路徑。
     """
-    all_data = dd.read_csv(data_path, dtype={'卡種': 'object', '身分': 'object'}) # 從已清理的檔案讀取
+    print(f"\n--- 從 '{data_path}' 載入台鐵資料進行分析 ---")
+    # 【修正點】將資料載入的程式碼移到函式內部
+    try:
+        all_data = dd.read_csv(data_path, dtype={'卡種': 'object', '身分': 'object'})
+    except FileNotFoundError:
+        print(f"錯誤：找不到台鐵資料檔案 '{data_path}'。請確認之前的 data_loader.py 步驟是否成功執行。")
+        return
 
     if all_data is not None:
         print("\n--- [設定分析區間：彰化到嘉義] ---")
@@ -417,5 +420,6 @@ def run_analysis(data_path):
         print("\n\n所有分析已完成！")
 
 if __name__ == '__main__':
-    # 這裡我們假設 data_loader.py 已經先執行完畢
+    # 這裡我們假設 data_loader.py 已經先執行完畢，產生了 cleaned_tra_data.csv
+    # 修正路徑，使其在 tra 資料夾內執行時能找到檔案
     run_analysis(data_path='cleaned_tra_data.csv')

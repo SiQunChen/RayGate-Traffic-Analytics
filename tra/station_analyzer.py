@@ -100,7 +100,7 @@ def run_analysis(data_path, station_name):
     }
 
     for title, (start_block, end_block) in time_chunks.items():
-        chunk_data = douliu_peak_df.loc[start_block : end_block-1]
+        chunk_data = peak_df.loc[start_block : end_block-1]
         
         if chunk_data.empty or chunk_data.sum().sum() == 0:
             print(f"\n時間區塊 '{title}' 沒有資料，跳過繪圖。")
@@ -127,7 +127,7 @@ def run_analysis(data_path, station_name):
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         plt.legend(title='類型', bbox_to_anchor=(1.02, 1), loc='upper left')
         plt.tight_layout(rect=[0, 0, 0.9, 1]) # 調整佈局以容納圖例
-        
+
         chart_filename = f'chart_{station_name}_peak_{title.split(" ")[0]}.png'
         chart_path = os.path.join(output_chart_dir, chart_filename)
         plt.savefig(chart_path, dpi=300)

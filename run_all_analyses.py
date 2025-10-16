@@ -12,9 +12,9 @@ sys.path.append(os.path.abspath('intercity_bus/jitong'))
 
 # --- 匯入模組 ---
 import unify_data
-import main_analyze_市區公車 as main_analyze_city_bus
+import main_analyzer as main_analyze_city_bus  # <--- 修改
 import station_analyzer as city_bus_station_analyzer
-import main_analysis_台鐵 as main_analysis_tra
+import main_analyzer as main_analysis_tra     # <--- 修改
 import station_analyzer as tra_station_analyzer
 import analyze as analyze_chiayi
 import analyze as analyze_jitong

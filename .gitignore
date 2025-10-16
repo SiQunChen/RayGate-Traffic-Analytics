@@ -14,12 +14,16 @@ env/
 
 # 忽略由分析腳本產生的結果目錄
 # 這樣可以忽略裡面所有的 .png, .csv, .txt 等檔案
+charts/
 clustering_results/
 */analysis_results/
 */output/
 */charts/
 */199_399_charts/
 */douliu_charts/
+
+# 忽略匯出的整合資料檔
+unified_data.csv
 
 # 忽略各個資料夾中的大型原始資料檔和中介資料檔
 # 使用 / 開頭確保只作用於根目錄下的特定資料夾，避免意外忽略其他地方的檔案
@@ -29,6 +33,11 @@ clustering_results/
 /city_bus/*.xlsx
 /city_bus/*.txt
 /intercity_bus/jitong/*.xlsx
+
+# 忽略來源資料夾內的大型原始資料
+source_data/**/*.csv
+source_data/**/*.xlsx
+source_data/**/*.txt
 
 # 忽略特定路徑下的資料檔
 /intercity_bus/chiayi/data/*.xlsx
