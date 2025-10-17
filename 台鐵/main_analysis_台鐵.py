@@ -3,12 +3,12 @@ matplotlib.use('Agg')
 
 import pandas as pd
 import dask.dataframe as dd
-# data_loader 已經修正，這裡不用改
-from data_loader import load_all_data
+# 修正：匯入正確的函式名稱
+from data_loader import load_and_save_data
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-import seaborn as sns 
-import os 
+import seaborn as sns
+import os
 import sys
 
 # --- 從 config.py 載入設定 ---
@@ -44,12 +44,12 @@ def setup_chinese_font():
     try:
         # 使用 'Microsoft JhengHei' 作為預設繁體中文字體
         font_name = 'Microsoft JhengHei'
-        plt.rcParams['font.sans-serif'] = [font_name] 
+        plt.rcParams['font.sans-serif'] = [font_name]
         plt.rcParams['axes.unicode_minus'] = False
-        
+
         sns.set_theme(style="whitegrid", font=font_name)
         print(f"Matplotlib 與 Seaborn 中文字體已設定為 '{font_name}'。")
-        
+
     except Exception as e:
         print(f"警告：設定字體時發生錯誤: {e}")
         print("圖表中的中文可能無法正確顯示。請確認您的系統中是否已安裝 '微軟正黑體'。")
@@ -60,15 +60,16 @@ setup_chinese_font()
 # ==============================================================================
 # 核心步驟：載入並準備所有資料
 # ==============================================================================
-all_data = load_all_data()
+# 修正：呼叫正確的函式
+all_data = load_and_save_data()
 
 if all_data is not None:
-    
+
     # ==============================================================================
     # <<< 新增區塊：定義並篩選車站區間 >>>
     # ==============================================================================
     print("\n--- [設定分析區間：彰化到嘉義] ---")
-    
+
     # 1. 定義「彰化到嘉義」區間的所有車站
     target_stations = [
         # 彰化縣
@@ -80,18 +81,18 @@ if all_data is not None:
         # 嘉義市
         '嘉北', '嘉義'
     ]
-    
+
     # 2. 篩選資料：只保留起點和迄點都在目標清單中的旅次
     # 使用 .isin() 方法來判斷起點和迄點是否在我們的目標車站清單內
     all_data = all_data[
-        all_data['起點'].isin(target_stations) & 
+        all_data['起點'].isin(target_stations) &
         all_data['迄點'].isin(target_stations)
     ]
-    
+
     print(f"已將資料範圍限定在 {len(target_stations)} 個車站內，後續將僅分析此區間的資料。")
     # <<< 新增區塊結束 >>>
     # ==============================================================================
-    
+
     # ==============================================================================
     # 分析一：黃金路線分析 (熱門OD)
     # ==============================================================================
@@ -108,7 +109,7 @@ if all_data is not None:
     hot_od_df = hot_od.reset_index()
     hot_od_df.columns = ['起點', '迄點', '總人次']
     hot_od_df['路線'] = hot_od_df['起點'] + ' → ' + hot_od_df['迄點']
-    
+
     sns.barplot(x='總人次', y='路線', data=hot_od_df.sort_values('總人次', ascending=False), palette='viridis', hue='路線', legend=False)
     plt.title('全台客運量 Top 20 路線 (OD)', fontsize=16)
     plt.xlabel('總人次', fontsize=12)
@@ -128,7 +129,7 @@ if all_data is not None:
     # 1. 複製資料以便進行此項專門分析
     data_for_5min = all_data.copy()
 
-    # 2. 建立一個統一的、精確到分鐘的時間欄位        
+    # 2. 建立一個統一的、精確到分鐘的時間欄位
     data_for_5min['進站時間'] = dd.to_datetime(
         data_for_5min['進站時間'],
         format='%Y-%m-%d %H:%M:%S',
@@ -159,7 +160,7 @@ if all_data is not None:
 
     for title, (start_block, end_block) in time_chunks.items():
         chunk_data = peak_5min.loc[start_block : end_block-1]
-        
+
         if chunk_data.empty:
             print(f"\n時間區塊 '{title}' 沒有資料，跳過繪圖。")
             continue
@@ -168,29 +169,29 @@ if all_data is not None:
             hour = block * 5 // 60
             minute = block * 5 % 60
             return f'{hour:02d}:{minute:02d}'
-        
+
         chunk_data.index = chunk_data.index.map(block_to_time)
 
         plt.figure(figsize=(15, 7))
         ax = sns.lineplot(data=chunk_data, marker='.', dashes=False, markersize=8)
-        
+
         plt.title(f'尖峰時段分析 (5分鐘間隔) - {title}', fontsize=18)
         plt.xlabel('時間', fontsize=12)
         plt.ylabel('總人次', fontsize=12)
-        
-        ax.xaxis.set_major_locator(mticker.MultipleLocator(6)) 
+
+        ax.xaxis.set_major_locator(mticker.MultipleLocator(6))
         plt.xticks(rotation=45)
-        
+
         plt.grid(True, linestyle='--')
         plt.legend(title='日期類型')
         plt.tight_layout()
-        
+
         chart_filename = f'chart_peak_5min_{title.split(" ")[0]}.png'
         chart_path = os.path.join(output_chart_dir, chart_filename)
         plt.savefig(chart_path, dpi=300)
         plt.close()
         print(f"Seaborn 圖表已儲存至 {chart_path}")
-    
+
     # ==============================================================================
     # 分析三：票證使用分析
     # ==============================================================================
@@ -198,11 +199,11 @@ if all_data is not None:
     ticket_class = all_data.groupby('票證分類')['人次'].sum().compute()
     print("電子票證(IC) vs. 非電子票證(N-IC) 使用量:")
     print(ticket_class)
-    
+
     card_type = all_data[all_data['票證分類'] == 'IC'].groupby('卡種')['人次'].sum().nlargest(10).compute()
     print("\nTop 10 各類電子票證卡種使用量:")
     print(card_type)
-    
+
     ticket_class_path = os.path.join(output_csv_dir, 'analysis_ticket_class.csv')
     card_type_path = os.path.join(output_csv_dir, 'analysis_card_type.csv')
     ticket_class.to_csv(ticket_class_path, encoding='utf-8-sig')
@@ -235,7 +236,7 @@ if all_data is not None:
     plt.savefig(chart_path, dpi=300)
     plt.close()
     print(f"Seaborn 圖表已儲存至 {chart_path}")
-    
+
     # ==============================================================================
     # 分析四：持卡身分分析
     # ==============================================================================
@@ -261,7 +262,7 @@ if all_data is not None:
     plt.savefig(chart_path, dpi=300)
     plt.close()
     print(f"Seaborn 圖表已儲存至 {chart_path}")
-    
+
     # ==============================================================================
     # 分析五：平均旅次時間分析
     # ==============================================================================
@@ -293,21 +294,21 @@ if all_data is not None:
     plt.savefig(chart_path, dpi=300)
     plt.close()
     print(f"Seaborn 圖表已儲存至 {chart_path}")
-    
+
     # ==============================================================================
     # 分析六：通勤走廊識別
     # ==============================================================================
     print("\n--- [分析六：通勤走廊識別] ---")
     weekday_df = all_data[all_data['日期類型'] == '平日']
-    
+
     morning_commute = weekday_df[weekday_df['時段'].isin([7, 8])].groupby(['起點', '迄點'])['人次'].sum().nlargest(10).compute()
     print("平日上午尖峰(7-9點) Top 10 通勤路線:")
     print(morning_commute)
-    
+
     evening_commute = weekday_df[weekday_df['時段'].isin([17, 18])].groupby(['起點', '迄點'])['人次'].sum().nlargest(10).compute()
     print("\n平日傍晚尖峰(17-19點) Top 10 通勤路線:")
     print(evening_commute)
-    
+
     morning_path = os.path.join(output_csv_dir, 'analysis_morning_commute.csv')
     evening_path = os.path.join(output_csv_dir, 'analysis_evening_commute.csv')
     morning_commute.to_csv(morning_path, encoding='utf-8-sig')
@@ -328,7 +329,7 @@ if all_data is not None:
     plt.savefig(chart_path, dpi=300)
     plt.close()
     print(f"Seaborn 圖表已儲存至 {chart_path}")
-    
+
     # --- 繪圖 (Seaborn - 傍晚) ---
     plt.figure(figsize=(10, 6))
     evening_commute_df = evening_commute.reset_index()
@@ -343,7 +344,7 @@ if all_data is not None:
     plt.savefig(chart_path, dpi=300)
     plt.close()
     print(f"Seaborn 圖表已儲存至 {chart_path}")
-    
+
     # ==============================================================================
     # 分析七：特定區間流量分析 (彰化-雲林-嘉義)
     # ==============================================================================
@@ -378,7 +379,7 @@ if all_data is not None:
     summary_df = final_summary.reset_index()
     summary_df.columns = ['起點縣市', '迄點縣市', '總人次']
     summary_df['路線'] = summary_df['起點縣市'] + ' → ' + summary_df['迄點縣市']
-    
+
     ax = sns.barplot(x='總人次', y='路線', data=summary_df, palette='cividis', hue='路線', legend=False)
     ax.set_title('彰化-雲林-嘉義 縣市間流量分析', fontsize=18)
     ax.set_xlabel('總人次', fontsize=12)
@@ -389,17 +390,17 @@ if all_data is not None:
     plt.savefig(chart_path, dpi=300)
     plt.close()
     print(f"Seaborn 圖表已儲存至 {chart_path}")
-    
+
     # ==============================================================================
     # 分析八：熱門車站分析
     # ==============================================================================
     print("\n--- [分析八：熱門車站分析] ---")
-    
+
     arrivals = all_data.groupby('迄點')['人次'].sum()
     departures = all_data.groupby('起點')['人次'].sum()
     total_station_traffic = arrivals.add(departures, fill_value=0)
     hot_stations = total_station_traffic.nlargest(20).compute()
-    
+
     print("彰化至嘉義客運量最高的 Top 20 車站:")
     print(hot_stations)
     output_path = os.path.join(output_csv_dir, 'analysis_hot_stations.csv')

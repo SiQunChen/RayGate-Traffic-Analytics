@@ -81,12 +81,12 @@ def main():
     print("🚀 開始執行全部分析流程...")
     print("將會依據 'config.py' 的設定進行分析。")
 
-    # # --- 流程 1: 市區公車分析 ---
-    # print("\n--- [階段一：市區公車分析] ---")
-    # run_script('市區公車/unify_data.py')
-    # run_script('市區公車/main_analyze_市區公車.py')
-    # run_script('市區公車/douliu_analyze_市區公車.py')
-    # run_script('市區公車/199_399_analyze.py')
+    # --- 流程 1: 市區公車分析 ---
+    print("\n--- [階段一：市區公車分析] ---")
+    run_script('市區公車/unify_data.py')
+    run_script('市區公車/main_analyze_市區公車.py')
+    run_script('市區公車/douliu_analyze_市區公車.py')
+    run_script('市區公車/199_399_analyze.py')
 
     # --- 流程 2: 乘客分群分析 ---
     print("\n--- [階段二：乘客分群分析 (Cluster Analysis)] ---")
