@@ -21,7 +21,7 @@ DATA_BASE_DIR = os.path.join(PROJECT_ROOT, 'data')
 
 # --- [測試模式設定] ---
 TEST_MODE = True         # 是否啟用測試模式
-TEST_MODE_ROWS = 1000  # 測試模式下讀取的資料筆數
+TEST_MODE_ROWS = 50000  # 測試模式下讀取的資料筆數
 
 
 # --- [市區公車分析設定] ---
@@ -45,7 +45,7 @@ CLUSTER_INPUT_FILE = BUS_UNIFIED_DATA_FILE
 CLUSTER_OUTPUT_DIR = os.path.join(OUTPUT_BASE_DIR, '2_乘客分群')
 
 # 篩選高頻乘客的最低乘車次數門檻
-CLUSTER_MIN_TRIP_COUNT = 20
+CLUSTER_MIN_TRIP_COUNT = 0
 
 
 # --- [台鐵資料分析設定] ---

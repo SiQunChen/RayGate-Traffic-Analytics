@@ -101,14 +101,18 @@ def plot_monthly_ridership(df):
 
 def plot_weekly_ridership(df):
     print("正在產生圖表：週間總運量分析...")
-    weekly_counts = df['上車星期'].value_counts().sort_index()
+    
+    # *** 【核心修改】 ***
+    # 使用 .reindex(range(7), fill_value=0) 確保 Series 總是包含 7 天 (0=週一 到 6=週日)
+    # 即使某些天沒有數據，也會以 0 填充。
+    weekly_counts = df['上車星期'].value_counts().reindex(range(7), fill_value=0)
     day_names = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
 
     # 【新增】印出分析結果
     print("\n--- 2. 週間總運量分析結果 ---")
     # 建立一個新的 Series 以便顯示中文星期
     weekly_counts_display = weekly_counts.copy()
-    weekly_counts_display.index = day_names
+    weekly_counts_display.index = day_names # 現在這裡不會再報錯了
     print(weekly_counts_display)
     print("---------------------------------\n")
     

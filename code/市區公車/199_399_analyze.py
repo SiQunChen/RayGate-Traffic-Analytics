@@ -86,10 +86,8 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     # --- 資料前處理 ---
     df['上車時間'] = pd.to_datetime(df['上車時間'], errors='coerce')
     df.dropna(subset=['上車時間'], inplace=True)
-    df = df[df['上車時間'] >= '2024-07-01'].copy()
-    print(f"篩選 2024-07-01 以後的資料，剩餘 {len(df)} 筆記錄。")
     if df.empty:
-        print("警告：篩選後無資料可分析。")
+        print("警告：無資料可分析。")
         return
     df['月份'] = df['上車時間'].dt.month
     df['上車時段'] = df['上車時間'].dt.hour

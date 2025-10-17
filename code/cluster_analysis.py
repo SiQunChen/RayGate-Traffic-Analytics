@@ -299,6 +299,14 @@ if __name__ == '__main__':
         print(f"移除了 {removed_passenger_count} 位總乘車次數小於 {min_trips} 的乘客。")
         print(f"篩選後剩下 {remaining_passenger_count} 位乘客進行後續分析。")
         
+        # *** 【核心修改】 ***
+        # 檢查篩選後是否還有資料，如果沒有，就直接結束程式
+        if remaining_passenger_count == 0:
+            print("\n警告：沒有任何乘客的搭乘次數達到分析門檻。")
+            print("乘客分群分析已跳過。")
+            # 正常退出腳本，返回碼 0 代表成功 (在此情境下是預期內的跳過)
+            sys.exit(0)
+            
         processed_data, card_ids = prepare_features_for_clustering(user_features_df)
         
         # [修改] 固定使用 PCA，移除使用者輸入
