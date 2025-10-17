@@ -1,11 +1,12 @@
-# 這是主分析檔案：main_analysis.py (僅包含分析九：斗六車站尖峰時段分析)
+# 檔名: douliu_analyze_台鐵.py (修正版)
 
 import matplotlib
 matplotlib.use('Agg')
 
 import pandas as pd
 import dask.dataframe as dd
-from data_loader import load_all_data
+# *** 修正點 1: 將 load_all_data 改為 load_and_save_data ***
+from data_loader import load_and_save_data
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import seaborn as sns 
@@ -50,7 +51,8 @@ setup_chinese_font()
 # ==============================================================================
 # 核心步驟：載入並準備所有資料
 # ==============================================================================
-all_data = load_all_data()
+# *** 修正點 2: 使用正確的函式名稱呼叫 ***
+all_data = load_and_save_data(output_filename='cleaned_tra_data.csv')
 
 if all_data is not None:
     

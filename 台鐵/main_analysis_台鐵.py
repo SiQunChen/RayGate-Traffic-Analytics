@@ -1,11 +1,12 @@
-# 這是主分析檔案：main_analysis.py (已加入區間篩選與斗六站尖峰分析)
+# 檔名: main_analysis_台鐵.py (修正版)
 
 import matplotlib
 matplotlib.use('Agg')
 
 import pandas as pd
 import dask.dataframe as dd
-from data_loader import load_all_data
+# *** 修正點 1: 將 load_all_data 改為 load_and_save_data ***
+from data_loader import load_and_save_data
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import seaborn as sns 
@@ -50,7 +51,8 @@ setup_chinese_font()
 # ==============================================================================
 # 核心步驟：載入並準備所有資料
 # ==============================================================================
-all_data = load_all_data()
+# *** 修正點 2: 使用正確的函式名稱呼叫 ***
+all_data = load_and_save_data(output_filename='cleaned_tra_data.csv')
 
 if all_data is not None:
     
@@ -81,6 +83,9 @@ if all_data is not None:
     print(f"已將資料範圍限定在 {len(target_stations)} 個車站內，後續將僅分析此區間的資料。")
     # <<< 新增區塊結束 >>>
     # ==============================================================================
+    
+    # (後續程式碼與原版相同，此處省略)
+    # ...
     
     # ==============================================================================
     # 分析一：黃金路線分析 (熱門OD)
