@@ -20,7 +20,7 @@ CODE_BASE_DIR = os.path.join(PROJECT_ROOT, 'code')
 DATA_BASE_DIR = os.path.join(PROJECT_ROOT, 'data')
 
 # --- [測試模式設定] ---
-TEST_MODE = True         # 是否啟用測試模式
+TEST_MODE = False         # 是否啟用測試模式
 TEST_MODE_ROWS = 50000  # 測試模式下讀取的資料筆數
 
 
@@ -29,8 +29,11 @@ TEST_MODE_ROWS = 50000  # 測試模式下讀取的資料筆數
 # 市區公車的原始資料路徑
 BUS_RAW_DATA_DIR = os.path.join(DATA_BASE_DIR, '市區公車')
 
+# 市區公車的程式碼路徑
+BUS_CODE_DIR = os.path.join(CODE_BASE_DIR, '市區公車')
+
 # 統一後的市區公車資料檔名 (輸出到 data/市區公車/ 底下)
-BUS_UNIFIED_DATA_FILE = os.path.join(BUS_RAW_DATA_DIR, 'unified_data.csv')
+BUS_UNIFIED_DATA_FILE = os.path.join(BUS_CODE_DIR, 'unified_data.csv')
 
 # 市區公車分析的輸出子資料夾
 BUS_OUTPUT_DIR = os.path.join(OUTPUT_BASE_DIR, '1_市區公車')

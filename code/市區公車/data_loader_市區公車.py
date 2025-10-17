@@ -55,11 +55,11 @@ def process_non_eticket_data(df):
         df_renamed['往返程'] = df_renamed['往返程'].astype(str).map(DIRECTION_MAP)
     else:
         df_renamed['往返程'] = '未提供'
-    df_renamed['卡號'] = '無卡號'
-    df_renamed['上車站名'] = '未提供'
+    df_renamed['卡號'] = '非電子票證'
+    df_renamed['上車站名'] = '非電子票證'
     df_renamed['下車時間'] = df_renamed['上車時間']  # 非電子票證無下車時間，暫時設為上車時間
-    df_renamed['下車站名'] = '未提供'
-    df_renamed['持卡身分'] = '未提供'
+    df_renamed['下車站名'] = '非電子票證'
+    df_renamed['持卡身分'] = '非電子票證'
     final_cols = ['路線', '卡號', '持卡身分', '票種類型', '往返程', '上車時間', '上車站名', '下車時間', '下車站名', '消費扣款']
     return df_renamed[final_cols]
 
@@ -194,7 +194,7 @@ def main():
     os.makedirs(os.path.dirname(output_filename), exist_ok=True)
     
     final_df.to_csv(output_filename, index=False, encoding='utf-8-sig')
-    print(f"\n✅ 資料已成功整合、清理並儲存至: {output_filename}")
+    print(f"\n資料已成功整合、清理並儲存至: {output_filename}")
 
 if __name__ == '__main__':
     main()

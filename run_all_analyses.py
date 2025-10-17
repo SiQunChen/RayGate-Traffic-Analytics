@@ -82,9 +82,9 @@ def main():
 
     # --- 流程 1: 市區公車分析 ---
     print("\n--- [階段一：市區公車分析] ---")
-    run_script(os.path.join(code_dir, '市區公車', 'unify_data.py'))
+    run_script(os.path.join(code_dir, '市區公車', 'data_loader_市區公車.py'))
     run_script(os.path.join(code_dir, '市區公車', 'main_analyze_市區公車.py'))
-    run_script(os.path.join(code_dir, '市區公車', '199_399_analyze.py'))
+    run_script(os.path.join(code_dir, '市區公車', 'analyze_定期票.py'))
 
     # --- 流程 2: 乘客分群分析 ---
     print("\n--- [階段二：乘客分群分析 (Cluster Analysis)] ---")
