@@ -1,5 +1,4 @@
-# 檔名: run_all_analyses.py (V5 - 適應新資料夾結構)
-# 請將此檔案放在專案的根目錄下 (與 "code", "data" 等資料夾同層)
+# 檔名: run_all_analyses.py (V6 - 公路客運流程更新)
 
 import os
 import subprocess
@@ -87,30 +86,29 @@ def main():
     run_script(os.path.join(code_dir, '市區公車', 'main_analyze_市區公車.py'))
     run_script(os.path.join(code_dir, '市區公車', '199_399_analyze.py'))
 
-    # --- 流程 2: 乘客分群分析 ---
-    print("\n--- [階段二：乘客分群分析 (Cluster Analysis)] ---")
-    run_script(os.path.join(code_dir, 'cluster_analysis.py'))
+    # # --- 流程 2: 乘客分群分析 ---
+    # print("\n--- [階段二：乘客分群分析 (Cluster Analysis)] ---")
+    # run_script(os.path.join(code_dir, 'cluster_analysis.py'))
 
-    # --- 流程 3: 台鐵資料分析 ---
-    print("\n--- [階段三：台鐵資料分析] ---")
-    run_script(os.path.join(code_dir, '台鐵', 'main_analysis_台鐵.py'))
+    # # --- 流程 3: 台鐵資料分析 ---
+    # print("\n--- [階段三：台鐵資料分析] ---")
+    # run_script(os.path.join(code_dir, '台鐵', 'main_analysis_台鐵.py'))
     
-    # --- 流程 4: 公路客運分析 ---
-    print("\n--- [階段四：公路客運分析] ---")
-    run_script(os.path.join(code_dir, '公路客運', '日統', 'analyze.py'))
-    run_script(os.path.join(code_dir, '公路客運', '嘉義', 'analyze.py'))
+    # # --- 流程 4: 公路客運分析 ---
+    # print("\n--- [階段四：公路客運分析] ---")
+    # run_script(os.path.join(code_dir, '公路客運', 'main_analysis_公路客運.py'))
     
-    # --- 流程 5: 轉乘行為分析 (可選) ---
-    print("\n--- [階段五：轉乘行為分析] ---")
-    if config.BUS_TRANSFER_STATION or config.TRA_TRANSFER_STATION:
-        print("偵測到已設定轉乘分析目標車站，即將開始分析...")
-        if config.BUS_TRANSFER_STATION:
-            run_script(os.path.join(code_dir, '市區公車', 'station_transfer_analyze.py'))
-        if config.TRA_TRANSFER_STATION:
-            run_script(os.path.join(code_dir, '台鐵', 'station_transfer_analyze.py'))
-    else:
-        print("在 'config.py' 中未設定轉乘分析的目標車站。")
-        print("已跳過此分析階段。")
+    # # --- 流程 5: 轉乘行為分析 (可選) ---
+    # print("\n--- [階段五：轉乘行為分析] ---")
+    # if config.BUS_TRANSFER_STATION or config.TRA_TRANSFER_STATION:
+    #     print("偵測到已設定轉乘分析目標車站，即將開始分析...")
+    #     if config.BUS_TRANSFER_STATION:
+    #         run_script(os.path.join(code_dir, '市區公車', 'station_transfer_analyze.py'))
+    #     if config.TRA_TRANSFER_STATION:
+    #         run_script(os.path.join(code_dir, '台鐵', 'station_transfer_analyze.py'))
+    # else:
+    #     print("在 'config.py' 中未設定轉乘分析的目標車站。")
+    #     print("已跳過此分析階段。")
 
 
     end_time = time.time()

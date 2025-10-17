@@ -66,23 +66,21 @@ all_data = load_and_save_data()
 if all_data is not None:
 
     # ==============================================================================
-    # <<< 新增區塊：定義並篩選車站區間 >>>
+    # <<< 新增區塊：從 config 動態定義並篩選車站區間 >>>
     # ==============================================================================
-    print("\n--- [設定分析區間：彰化到嘉義] ---")
+    # 1. 從 config 讀取車站與縣市的對應字典
+    station_to_city = config.TRA_STATION_TO_COUNTY
+    
+    # 2. 自動生成目標車站列表
+    target_stations = list(station_to_city.keys())
 
-    # 1. 定義「彰化到嘉義」區間的所有車站
-    target_stations = [
-        # 彰化縣
-        '彰化', '花壇', '大村', '員林', '永靖', '社頭', '田中', '二水',
-        # 雲林縣
-        '林內', '石榴', '斗六', '斗南', '石龜',
-        # 嘉義縣
-        '大林', '民雄', '南靖', '水上',
-        # 嘉義市
-        '嘉北', '嘉義'
-    ]
+    # 3. 自動生成分析區域的標題 (例如："彰化-雲林-嘉義")
+    #    - dict.fromkeys(station_to_city.values()) 會移除重複的縣市並保持順序
+    analysis_title_region = "-".join(list(dict.fromkeys(station_to_city.values())))
+    
+    print(f"\n--- [設定分析區間：{analysis_title_region}] ---")
 
-    # 2. 篩選資料：只保留起點和迄點都在目標清單中的旅次
+    # 4. 篩選資料：只保留起點和迄點都在目標清單中的旅次
     # 使用 .isin() 方法來判斷起點和迄點是否在我們的目標車站清單內
     all_data = all_data[
         all_data['起點'].isin(target_stations) &
@@ -98,7 +96,7 @@ if all_data is not None:
     # ==============================================================================
     print("\n--- [分析一：黃金路線分析] ---")
     hot_od = all_data.groupby(['起點', '迄點'])['人次'].sum().nlargest(20).compute()
-    print("全台客運量最高的 Top 20 路線 (OD):")
+    print(f"{analysis_title_region} 區間客運量最高的 Top 20 路線 (OD):")
     print(hot_od)
     output_path = os.path.join(output_csv_dir, 'analysis_hot_od.csv')
     hot_od.to_csv(output_path, encoding='utf-8-sig')
@@ -111,7 +109,7 @@ if all_data is not None:
     hot_od_df['路線'] = hot_od_df['起點'] + ' → ' + hot_od_df['迄點']
 
     sns.barplot(x='總人次', y='路線', data=hot_od_df.sort_values('總人次', ascending=False), palette='viridis', hue='路線', legend=False)
-    plt.title('全台客運量 Top 20 路線 (OD)', fontsize=16)
+    plt.title(f'{analysis_title_region} 區間客運量 Top 20 路線 (OD)', fontsize=16)
     plt.xlabel('總人次', fontsize=12)
     plt.ylabel('路線', fontsize=12)
     plt.tight_layout()
@@ -346,42 +344,34 @@ if all_data is not None:
     print(f"Seaborn 圖表已儲存至 {chart_path}")
 
     # ==============================================================================
-    # 分析七：特定區間流量分析 (彰化-雲林-嘉義)
+    # 分析七：特定區間流量分析 (依據 config 設定)
     # ==============================================================================
-    print("\n--- [分析七：特定區間流量分析 (彰化-雲林-嘉義)] ---")
+    print(f"\n--- [分析七：特定區間流量分析 ({analysis_title_region})] ---")
 
-    # 1. 建立車站到縣市的對應字典
-    station_to_city = {
-        '彰化': '彰化縣', '花壇': '彰化縣', '大村': '彰化縣', '員林': '彰化縣', '永靖': '彰化縣', '社頭': '彰化縣', '田中': '彰化縣', '二水': '彰化縣',
-        '林內': '雲林縣', '石榴': '雲林縣', '斗六': '雲林縣', '斗南': '雲林縣', '石龜': '雲林縣',
-        '大林': '嘉義縣', '民雄': '嘉義縣', '南靖': '嘉義縣', '水上': '嘉義縣',
-        '嘉北': '嘉義市', '嘉義': '嘉義市'
-    }
-
-    # 2. 建立縣市欄位
+    # 1. 建立縣市欄位
     all_data['起點縣市'] = all_data['起點'].map(station_to_city, meta=('起點縣市', 'object'))
     all_data['迄點縣市'] = all_data['迄點'].map(station_to_city, meta=('迄點縣市', 'object'))
 
-    # 3. 計算縣市間流量
+    # 2. 計算縣市間流量
     county_to_county = all_data.groupby(['起點縣市', '迄點縣市'])['人次'].sum().compute()
     final_summary = county_to_county[county_to_county > 0].sort_values(ascending=False)
 
     print("\n--- 特定路線流量分析結果 ---")
     print(final_summary)
 
-    # 4. 儲存至 CSV
+    # 3. 儲存至 CSV
     output_path = os.path.join(output_csv_dir, 'analysis_specific_flows.csv')
     final_summary.to_csv(output_path, encoding='utf-8-sig', header=['總人次'])
     print(f"詳細流量分析結果已儲存至 {output_path}")
 
-    # 5. 繪圖
+    # 4. 繪圖
     plt.figure(figsize=(12, 10))
     summary_df = final_summary.reset_index()
     summary_df.columns = ['起點縣市', '迄點縣市', '總人次']
     summary_df['路線'] = summary_df['起點縣市'] + ' → ' + summary_df['迄點縣市']
 
     ax = sns.barplot(x='總人次', y='路線', data=summary_df, palette='cividis', hue='路線', legend=False)
-    ax.set_title('彰化-雲林-嘉義 縣市間流量分析', fontsize=18)
+    ax.set_title(f'{analysis_title_region} 縣市間流量分析', fontsize=18)
     ax.set_xlabel('總人次', fontsize=12)
     ax.set_ylabel('路線 (起點 → 迄點)', fontsize=12)
 
@@ -401,7 +391,7 @@ if all_data is not None:
     total_station_traffic = arrivals.add(departures, fill_value=0)
     hot_stations = total_station_traffic.nlargest(20).compute()
 
-    print("彰化至嘉義客運量最高的 Top 20 車站:")
+    print(f"{analysis_title_region} 區間客運量最高的 Top 20 車站:")
     print(hot_stations)
     output_path = os.path.join(output_csv_dir, 'analysis_hot_stations.csv')
     hot_stations.to_csv(output_path, encoding='utf-8-sig')
@@ -412,7 +402,7 @@ if all_data is not None:
     hot_stations_df = hot_stations.reset_index()
     hot_stations_df.columns = ['車站', '總人次']
     sns.barplot(x='總人次', y='車站', data=hot_stations_df.sort_values('總人次', ascending=False), palette='rocket', hue='車站', legend=False)
-    plt.title('彰化至嘉義客運量 Top 20 車站', fontsize=16)
+    plt.title(f'{analysis_title_region} 區間客運量 Top 20 車站', fontsize=16)
     plt.xlabel('總人次 (進站+出站)', fontsize=12)
     plt.ylabel('車站', fontsize=12)
     plt.tight_layout()
