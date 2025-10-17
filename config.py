@@ -20,7 +20,7 @@ CODE_BASE_DIR = os.path.join(PROJECT_ROOT, 'code')
 DATA_BASE_DIR = os.path.join(PROJECT_ROOT, 'data')
 
 # --- [測試模式設定] ---
-TEST_MODE = False         # 是否啟用測試模式
+TEST_MODE = True         # 是否啟用測試模式
 TEST_MODE_ROWS = 50000  # 測試模式下讀取的資料筆數
 
 
