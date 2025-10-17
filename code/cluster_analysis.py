@@ -1,10 +1,10 @@
-# 檔名: cluster_analysis.py (V11 - 自動化版本)
+# 檔名: cluster_analysis.py (V12 - 根據 data_loader_市區公車.py V2 進行重構)
 # =============================================================================
 # 雲林公車乘客 K-Means 分群完整流程 (自動化版本)
 #
 # 本腳本涵蓋以下步驟：
 # 1. 環境設定與資料載入 (從 config.py 讀取設定)
-# 2. 特徵工程
+# 2. 特徵工程 (使用已預處理好的欄位)
 # 3. 根據總乘車次數篩選乘客 (從 config.py 讀取門檻)
 # 4. 特徵準備
 # 5. (固定執行) 使用 PCA 進行降維
@@ -49,65 +49,50 @@ print(f"分析結果與圖表將儲存於 '{output_dir}/' 資料夾。")
 
 # --- 步驟 1: 資料載入與預處理 ---
 
-def unify_ticket_type(ticket_name):
-    """
-    根據關鍵字，將票種名稱統一分類。
-    """
-    ticket_name_str = str(ticket_name).strip()
-
-    # 關鍵字分類字典
-    ticket_keywords = {
-        '代幣卡': ['代幣', '代'],
-        '優待': ['敬老', '愛心', '陪伴', '博愛', '孩童', '優待', '兒童', '優惠', '國小', '新北學生卡', '雲林小', '半票'],
-        '學生': ['學生', '學童', '大學', '學'],
-        '普通': ['一般', '普通', '全票', '市民', '普卡'],
-        '定期票': ['199', '399']
-    }
-
-    # 依序檢查關鍵字
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['代幣卡']):
-        return '代幣卡'
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['優待']):
-        return '優待'
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['學生']):
-        return '學生'
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['普通']):
-        return '普通'
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['定期票']):
-        return '定期票'
-
-    return '其他'
-
 def load_and_preprocess_data(filepath):
-    print(f"步驟 1: 正在載入與預處理資料 from '{filepath}'...")
+    """
+    V2版修改：大幅簡化預處理流程。
+    - 移除 unify_ticket_type 函式，因為 data_loader 已處理。
+    - 移除時間轉換與旅次時長計算，因為 data_loader 已提供 '旅次時長(分)'。
+    - 直接使用 data_loader 產生的欄位。
+    """
+    print(f"步驟 1: 正在載入已預處理的資料 from '{filepath}'...")
     try:
-        df = pd.read_csv(filepath, dtype={'路線': str, '司機': str})
+        # data_loader 已處理大部分 Dtype，此處僅需讀取
+        df = pd.read_csv(filepath, dtype={'路線': str, '卡號': str})
     except FileNotFoundError:
-        print(f"錯誤：找不到檔案 '{filepath}'。請檢查 config.py 中的 CLUSTER_INPUT_FILE 設定。")
+        print(f"錯誤：找不到檔案 '{filepath}'。請檢查 config.py 中的 CLUSTER_INPUT_FILE 設定，並確認 data_loader_市區公車.py 已執行。")
         return None
-    df['票種分類'] = df['票種名稱'].apply(unify_ticket_type)
-    print("票種統一完成，分類預覽：")
-    print(df['票種分類'].value_counts())
+    
+    # data_loader 已處理時間格式，此處僅需再次確認
     df['上車時間'] = pd.to_datetime(df['上車時間'], errors='coerce')
-    df['下車時間'] = pd.to_datetime(df['下車時間'], errors='coerce')
+    
+    # data_loader 已提供 '旅次是否完整' 欄位
     df = df[df['旅次是否完整'] == True].copy()
-    df['旅次時長'] = (df['下車時間'] - df['上車時間']).dt.total_seconds() / 60
-    print(f"資料預處理完成，共計 {len(df)} 筆有效旅次紀錄。")
+    
+    # 移除 '無卡號' 的記錄，因為無法對其進行使用者分群
+    df = df[df['卡號'] != '無卡號'].copy()
+
+    print("持卡身分預覽：")
+    print(df['持卡身分'].value_counts())
+    print(f"資料載入完成，共計 {len(df)} 筆有效的持卡人旅次紀錄。")
     return df
 
-# --- 步驟 2: 特徵工程 (與原版相同) ---
+# --- 步驟 2: 特徵工程 (與原版相同，但依賴的欄位已由 data_loader 產生) ---
 def create_user_features(df):
     """
     以每個 '卡號' 為單位，建立使用者行為特徵。
+    V2版修改：
+    - 直接使用 '上車星期', '上車小時' 等已存在的欄位。
+    - 使用 '旅次時長(分)' 取代手動計算的 '旅次時長'。
+    - 使用 '持卡身分' 取代 '票種分類'。
     """
     print("\n步驟 2: 正在進行特徵工程...")
     
     # --- 時間相關特徵 ---
-    df['星期'] = df['上車時間'].dt.dayofweek  # 0=週一, 6=週日
-    df['小時'] = df['上車時間'].dt.hour
-    df['是否平日'] = df['星期'].isin(range(5)) # 0-4 代表週一到週五
-    df['是否尖峰'] = df['小時'].isin([7, 8, 17, 18]) # 上下班尖峰
-    df['是否深夜清晨'] = df['小時'].isin([22, 23, 0, 1, 2, 3, 4, 5])
+    df['是否平日'] = df['日期類型'] == '平日'
+    df['是否尖峰'] = df['上車小時'].isin([7, 8, 17, 18]) # 上下班尖峰
+    df['是否深夜清晨'] = df['上車小時'].isin([22, 23, 0, 1, 2, 3, 4, 5])
     
     # --- 空間相關特徵 ---
     df['OD對'] = df['上車站名'] + ' -> ' + df['下車站名']
@@ -122,7 +107,7 @@ def create_user_features(df):
 
     user_features = df.groupby('卡號').agg(
         總乘車次數=('卡號', 'count'),
-        平均旅次時長=('旅次時長', 'mean'),
+        平均旅次時長=('旅次時長(分)', 'mean'), # 使用新欄位
         平日乘車比例=('是否平日', lambda x: x.sum() / x.count()),
         尖峰時段乘車比例=('是否尖峰', lambda x: x.sum() / x.count()),
         深夜清晨乘車次數=('是否深夜清晨', 'sum'),
@@ -131,7 +116,8 @@ def create_user_features(df):
         最常上車站點=('上車站名', safe_mode),
         最常下車站點=('下車站名', safe_mode),
         主要活動路線=('路線', safe_mode),
-        主要票種=('票種分類', safe_mode)
+        主要持卡身分=('持卡身分', safe_mode), # 使用 '持卡身分'
+        主要票種類型=('票種類型', safe_mode)  # 新增欄位，用於後續 Tpass 分析
     ).reset_index()
     
     user_features.replace([np.inf, -np.inf], 0, inplace=True)
@@ -142,11 +128,14 @@ def create_user_features(df):
     print(user_features.head())
     return user_features
 
-# --- 步驟 3: 特徵準備 (與原版相同) ---
+# --- 步驟 3: 特徵準備 (已修改) ---
 def prepare_features_for_clustering(features_df):
+    """
+    V2版修改：類別特徵改為 '主要持卡身分'
+    """
     print("\n步驟 3: 正在準備特徵 (使用精簡版核心特徵)...")
     core_numerical_features = ['總乘車次數', '平均旅次時長', '平日乘車比例', '尖峰時段乘車比例', '旅次起終點熵']
-    core_categorical_features = ['主要票種', '最常上車站點', '最常下車站點']
+    core_categorical_features = ['主要持卡身分', '最常上車站點', '最常下車站點'] # 更新特徵
     model_df = features_df.set_index('卡號')
     features_for_model = model_df[core_numerical_features + core_categorical_features]
     preprocessor = ColumnTransformer(
@@ -174,25 +163,25 @@ def apply_pca(processed_data, n_components=0.95):
     plt.legend()
     pca_plot_path = os.path.join(output_dir, 'pca_explained_variance.png')
     plt.savefig(pca_plot_path)
-    # plt.show() # [修改] 移除顯示
-    plt.close() # [新增] 關閉畫布
+    plt.close()
     print(f"PCA 解釋變異數圖已儲存至 '{pca_plot_path}'。")
     return pca_data
 
-# --- 步驟 5: 尋找 K 值 (已修改) ---
+# --- 步驟 5: 尋找 K 值 (與原版相同) ---
 def find_optimal_k(scaled_data):
     """
     修改後：除了繪圖，還會回傳最佳 K 值。
     """
     print("\n步驟 5: 正在使用手肘法與輪廓係數尋找最佳 K 值...")
     sse, silhouette_scores = [], []
-    k_range = range(2, 20)
+    k_range = range(2, 11) # 縮小範圍以加速
     for k in k_range:
         print(f"  正在計算 K={k}...")
         kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
         kmeans.fit(scaled_data)
         sse.append(kmeans.inertia_)
-        sample_size = 10000 if scaled_data.shape[0] > 10000 else None
+        # 對於大型資料集，抽樣計算輪廓係數以提高效率
+        sample_size = 5000 if scaled_data.shape[0] > 5000 else None
         score = silhouette_score(scaled_data, kmeans.labels_, metric='euclidean', sample_size=sample_size, random_state=42)
         silhouette_scores.append(score)
     fig, ax1 = plt.subplots(figsize=(12, 7))
@@ -207,11 +196,9 @@ def find_optimal_k(scaled_data):
     plt.xticks(k_range); plt.grid(True)
     plot_path = os.path.join(output_dir, 'optimal_k_evaluation.png')
     plt.savefig(plot_path)
-    # plt.show() # [修改] 移除顯示
-    plt.close() # [新增] 關閉畫布
+    plt.close()
     print(f"評估圖表已儲存至 '{plot_path}'。")
     
-    # [修改] 根據最高的輪廓係數決定最佳 K 值並回傳
     best_k_by_silhouette = k_range[np.argmax(silhouette_scores)]
     print(f"根據最高的輪廓係數，自動選擇的最佳 K 值為 {best_k_by_silhouette}。")
     return best_k_by_silhouette
@@ -226,6 +213,9 @@ def apply_kmeans(scaled_data, k):
 
 # --- 步驟 7: 結果分析 (已修改) ---
 def analyze_and_visualize_clusters(features_df, clusters):
+    """
+    V2版修改：使用 '主要持卡身分' 進行分析。
+    """
     print("\n步驟 7: 正在進行分群結果分析與視覺化...")
     features_df['群組'] = clusters
     numerical_summary = features_df.groupby('群組').mean(numeric_only=True)
@@ -236,33 +226,37 @@ def analyze_and_visualize_clusters(features_df, clusters):
     print(f"數值特徵摘要已儲存至 '{summary_path}'。")
     safe_mode = lambda x: x.mode().iloc[0] if not x.mode().empty else 'N/A'
     spatial_summary = features_df.groupby('群組').agg(
-        主要票種=('主要票種', safe_mode), 最常上車站點=('最常上車站點', safe_mode),
-        最常下車站點=('最常下車站點', safe_mode), 主要活動路線=('主要活動路線', safe_mode)
+        主要持卡身分=('主要持卡身分', safe_mode), 
+        最常上車站點=('最常上車站點', safe_mode),
+        最常下車站點=('最常下車站點', safe_mode), 
+        主要活動路線=('主要活動路線', safe_mode)
     )
     print("\n各群組主要空間與身份特徵："); print(spatial_summary)
     spatial_summary_path = os.path.join(output_dir, 'cluster_spatial_summary.csv')
     spatial_summary.to_csv(spatial_summary_path, encoding='utf-8-sig')
     print(f"空間與身份特徵摘要已儲存至 '{spatial_summary_path}'。")
+    
     numerical_summary.drop(columns='群組人數').plot(kind='bar', subplots=True, figsize=(16, 10), layout=(2, 4), legend=False, sharex=True, title='各群組數值特徵比較')
     plt.tight_layout()
     barchart_path = os.path.join(output_dir, 'cluster_feature_comparison.png')
     plt.savefig(barchart_path)
-    # plt.show() # [修改] 移除顯示
-    plt.close()  # [新增] 關閉畫布
+    plt.close()
     
-    ticket_distribution = pd.crosstab(features_df['群組'], features_df['主要票種'])
+    ticket_distribution = pd.crosstab(features_df['群組'], features_df['主要持卡身分'])
     ticket_distribution.plot(kind='bar', stacked=True, figsize=(12, 7), colormap='viridis')
-    plt.title('各群組主要票種分佈'); plt.xlabel('群組'); plt.ylabel('人數'); plt.xticks(rotation=0); plt.legend(title='主要票種'); plt.tight_layout()
+    plt.title('各群組主要持卡身分分佈'); plt.xlabel('群組'); plt.ylabel('人數'); plt.xticks(rotation=0); plt.legend(title='主要持卡身分'); plt.tight_layout()
     ticket_plot_path = os.path.join(output_dir, 'cluster_ticket_distribution_plot.png')
     plt.savefig(ticket_plot_path)
-    # plt.show() # [修改] 移除顯示
-    plt.close()  # [新增] 關閉畫布
+    plt.close()
     return features_df
 
 # --- 步驟 8: Tpass (已修改) ---
 def integrate_tpass_data(clustered_users_df):
-    print("\n步驟 8: 正在整合 Tpass 資料 (依據'主要票種'欄位)...")
-    clustered_users_df['是否為Tpass用戶'] = (clustered_users_df['主要票種'] == '定期票')
+    """
+    V2版修改：改用 '主要票種類型' 欄位來判斷是否為 Tpass 用戶。
+    """
+    print("\n步驟 8: 正在整合 Tpass 資料 (依據'主要票種類型'欄位)...")
+    clustered_users_df['是否為Tpass用戶'] = (clustered_users_df['主要票種類型'] == '定期票')
     tpass_analysis = clustered_users_df.groupby('群組')['是否為Tpass用戶'].agg(['count', 'sum'])
     tpass_analysis.rename(columns={'count': '群組總人數', 'sum': 'Tpass用戶數'}, inplace=True)
     tpass_analysis['Tpass用戶比例'] = (tpass_analysis['Tpass用戶數'] / tpass_analysis['群組總人數']) * 100
@@ -275,11 +269,10 @@ def integrate_tpass_data(clustered_users_df):
     plt.title('各群組 Tpass 用戶比例'); plt.xlabel('群組'); plt.ylabel('Tpass 用戶比例 (%)')
     tpass_plot_path = os.path.join(output_dir, 'tpass_user_ratio.png')
     plt.savefig(tpass_plot_path)
-    # plt.show() # [修改] 移除顯示
-    plt.close() # [新增] 關閉畫布
+    plt.close()
     return clustered_users_df
 
-# --- 主執行流程 (已修改) ---
+# --- 主執行流程 (與原版相同) ---
 if __name__ == '__main__':
     # 從 config 讀取檔案路徑
     raw_df = load_and_preprocess_data(filepath=config.CLUSTER_INPUT_FILE)
@@ -299,29 +292,32 @@ if __name__ == '__main__':
         print(f"移除了 {removed_passenger_count} 位總乘車次數小於 {min_trips} 的乘客。")
         print(f"篩選後剩下 {remaining_passenger_count} 位乘客進行後續分析。")
         
-        # *** 【核心修改】 ***
-        # 檢查篩選後是否還有資料，如果沒有，就直接結束程式
         if remaining_passenger_count == 0:
             print("\n警告：沒有任何乘客的搭乘次數達到分析門檻。")
             print("乘客分群分析已跳過。")
-            # 正常退出腳本，返回碼 0 代表成功 (在此情境下是預期內的跳過)
             sys.exit(0)
             
         processed_data, card_ids = prepare_features_for_clustering(user_features_df)
         
-        # [修改] 固定使用 PCA，移除使用者輸入
         print("\n固定使用 PCA 進行降維優化...")
         data_for_clustering = apply_pca(processed_data)
             
-        # [修改] 自動尋找並使用最佳 K 值，移除使用者輸入
         optimal_k = find_optimal_k(data_for_clustering)
         
         clusters = apply_kmeans(data_for_clustering, k=optimal_k)
         
-        clustered_users_df = user_features_df.copy()
+        # 將群組標籤加回原始特徵 DataFrame
+        # 確保索引對齊
+        clustered_users_df = user_features_df.set_index('卡號')
         clustered_users_df['群組'] = clusters
+        clustered_users_df.reset_index(inplace=True)
+
+        analyzed_df = analyze_and_visualize_clusters(clustered_users_df.copy(), clusters)
+        final_df = integrate_tpass_data(analyzed_df)
         
-        analyzed_df = analyze_and_visualize_clusters(clustered_users_df, clusters)
-        integrate_tpass_data(analyzed_df)
-        
+        # 儲存最終包含分群結果的使用者特徵檔
+        final_output_path = os.path.join(output_dir, 'final_clustered_user_features.csv')
+        final_df.to_csv(final_output_path, index=False, encoding='utf-8-sig')
+        print(f"\n包含分群結果的完整使用者特徵資料已儲存至：{final_output_path}")
+
         print("\n=== 全部分析流程已完成 ===")
