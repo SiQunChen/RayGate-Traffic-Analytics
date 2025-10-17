@@ -44,36 +44,6 @@ def load_and_preprocess_data(filepath=config.BUS_UNIFIED_DATA_FILE):
     complete_trips = df['旅次是否完整'] == True
     df.loc[complete_trips, '旅次時間_分'] = (df.loc[complete_trips, '下車時間'] - df.loc[complete_trips, '上車時間']).dt.total_seconds() / 60
 
-    def unify_ticket_type(ticket_name):
-        """
-        根據關鍵字，將票種名稱統一分類。
-        """
-        ticket_name_str = str(ticket_name).strip()
-
-        # 關鍵字分類字典
-        ticket_keywords = {
-            '代幣卡': ['代幣', '代'],
-            '優待': ['敬老', '愛心', '陪伴', '博愛', '孩童', '優待', '兒童', '優惠', '國小', '新北學生卡', '雲林小', '半票'],
-            '學生': ['學生', '學童', '大學', '學'],
-            '普通': ['一般', '普通', '全票', '市民', '普卡'],
-            '定期票': ['199', '399']
-        }
-
-        # 依序檢查關鍵字
-        if any(keyword in ticket_name_str for keyword in ticket_keywords['代幣卡']):
-            return '代幣卡'
-        if any(keyword in ticket_name_str for keyword in ticket_keywords['優待']):
-            return '優待'
-        if any(keyword in ticket_name_str for keyword in ticket_keywords['學生']):
-            return '學生'
-        if any(keyword in ticket_name_str for keyword in ticket_keywords['普通']):
-            return '普通'
-        if any(keyword in ticket_name_str for keyword in ticket_keywords['定期票']):
-            return '定期票'
-
-        return '其他'
-
-    df['票種分類'] = df['票種名稱'].apply(unify_ticket_type)
     print("資料預處理完成。")
     return df
 
@@ -101,18 +71,14 @@ def plot_monthly_ridership(df):
 
 def plot_weekly_ridership(df):
     print("正在產生圖表：週間總運量分析...")
-    
-    # *** 【核心修改】 ***
-    # 使用 .reindex(range(7), fill_value=0) 確保 Series 總是包含 7 天 (0=週一 到 6=週日)
-    # 即使某些天沒有數據，也會以 0 填充。
-    weekly_counts = df['上車星期'].value_counts().reindex(range(7), fill_value=0)
+    weekly_counts = df['上車星期'].value_counts().sort_index()
     day_names = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
 
     # 【新增】印出分析結果
     print("\n--- 2. 週間總運量分析結果 ---")
     # 建立一個新的 Series 以便顯示中文星期
     weekly_counts_display = weekly_counts.copy()
-    weekly_counts_display.index = day_names # 現在這裡不會再報錯了
+    weekly_counts_display.index = day_names
     print(weekly_counts_display)
     print("---------------------------------\n")
     
