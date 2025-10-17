@@ -1,4 +1,4 @@
-# 檔名: douliu_analyze_市區公車.py (V2 - 整合 config.py)
+# 檔名: douliu_analyze_市區公車.py (V3 - 統一輸出路徑)
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -45,7 +45,8 @@ def analyze_and_plot_by_time_and_day_type(df, station_name, output_folder):
     分析指定車站於「平日」及「假日」在四個不同時段的上、下車尖峰。
     """
     print(f"\n開始分析車站：'{station_name}' 的時段流量...")
-    os.makedirs(output_folder, exist_ok=True)
+    # 確保資料夾存在 (主程式區塊已建立，此處為雙重保險)
+    os.makedirs(output_folder, exist_ok=True) 
     print(f"圖表將儲存於：'{output_folder}'")
 
     station_boardings_df = df[df['上車站名'] == station_name].copy()
@@ -161,7 +162,12 @@ if __name__ == '__main__':
     if bus_data is not None:
         # 從 config 讀取目標車站和輸出資料夾
         TARGET_STATION = config.BUS_DOULIU_TARGET_STATION
-        OUTPUT_FOLDER = os.path.join('..', config.OUTPUT_BASE_DIR, 'bus', 'douliu_analysis')
+        
+        # *** 核心修正：使用 config.py 的設定來建立統一的輸出路徑 ***
+        OUTPUT_FOLDER = os.path.join('..', config.BUS_OUTPUT_DIR, 'douliu_analysis')
+        
+        # 確保輸出資料夾存在
+        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
         analyze_and_plot_by_time_and_day_type(bus_data, station_name=TARGET_STATION, output_folder=OUTPUT_FOLDER)
         plot_morning_destinations(bus_data, station_name=TARGET_STATION, output_folder=OUTPUT_FOLDER)

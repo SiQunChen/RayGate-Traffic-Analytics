@@ -86,15 +86,15 @@ def main():
     run_script('市區公車/douliu_analyze_市區公車.py')
     run_script('市區公車/199_399_analyze.py')
 
-    # --- 流程 2: 乘客分群分析 ---
-    print("\n--- [階段二：乘客分群分析 (Cluster Analysis)] ---")
-    print("注意：此腳本可能需要使用者手動輸入 K 值，請留意終端機提示。")
-    run_script('cluster_analysis.py')
+    # # --- 流程 2: 乘客分群分析 ---
+    # print("\n--- [階段二：乘客分群分析 (Cluster Analysis)] ---")
+    # print("注意：此腳本可能需要使用者手動輸入 K 值，請留意終端機提示。")
+    # run_script('cluster_analysis.py')
 
-    # --- 流程 3: 台鐵資料分析 ---
-    print("\n--- [階段三：台鐵資料分析] ---")
-    run_script('台鐵/main_analysis_台鐵.py')
-    run_script('台鐵/douliu_analyze_台鐵.py')
+    # # --- 流程 3: 台鐵資料分析 ---
+    # print("\n--- [階段三：台鐵資料分析] ---")
+    # run_script('台鐵/main_analysis_台鐵.py')
+    # run_script('台鐵/douliu_analyze_台鐵.py')
     
     # --- 流程 4: 公路客運分析 ---
     print("\n--- [階段四：公路客運分析] ---")

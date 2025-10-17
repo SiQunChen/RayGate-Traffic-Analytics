@@ -1,22 +1,32 @@
-# 檔名: main_analysis_台鐵.py (修正版)
+# 這是主分析檔案：main_analysis.py (已加入區間篩選與斗六站尖峰分析)
 
 import matplotlib
 matplotlib.use('Agg')
 
 import pandas as pd
 import dask.dataframe as dd
-# *** 修正點 1: 將 load_all_data 改為 load_and_save_data ***
-from data_loader import load_and_save_data
+from data_loader import load_all_data
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import seaborn as sns 
 import os 
+import sys
+
+# --- 從 config.py 載入設定 ---
+try:
+    # 假設 config.py 在上層目錄
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    import config
+except ImportError:
+    print("錯誤：無法找到 config.py。請確認您的專案結構。")
+    sys.exit(1)
 
 # ==============================================================================
 # 建立輸出資料夾
 # ==============================================================================
-output_csv_dir = 'analysis_results'
-output_chart_dir = 'charts'
+# 使用 config.py 中定義的輸出資料夾
+output_csv_dir = os.path.join('..', config.TRA_OUTPUT_DIR, 'csv')
+output_chart_dir = os.path.join('..', config.TRA_OUTPUT_DIR, 'charts')
 
 os.makedirs(output_csv_dir, exist_ok=True)
 os.makedirs(output_chart_dir, exist_ok=True)
@@ -51,8 +61,7 @@ setup_chinese_font()
 # ==============================================================================
 # 核心步驟：載入並準備所有資料
 # ==============================================================================
-# *** 修正點 2: 使用正確的函式名稱呼叫 ***
-all_data = load_and_save_data(output_filename='cleaned_tra_data.csv')
+all_data = load_all_data()
 
 if all_data is not None:
     
@@ -83,9 +92,6 @@ if all_data is not None:
     print(f"已將資料範圍限定在 {len(target_stations)} 個車站內，後續將僅分析此區間的資料。")
     # <<< 新增區塊結束 >>>
     # ==============================================================================
-    
-    # (後續程式碼與原版相同，此處省略)
-    # ...
     
     # ==============================================================================
     # 分析一：黃金路線分析 (熱門OD)

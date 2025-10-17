@@ -3,6 +3,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import sys
+
+# --- 從 config.py 載入設定 ---
+try:
+    # 假設 config.py 在上層目錄
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    import config
+except ImportError:
+    print("錯誤：無法找到 config.py。請確認您的專案結構。")
+    sys.exit(1)
 
 def setup_visualization():
     """
@@ -120,7 +130,8 @@ def analyze_and_visualize_bus_data(file_path='unified_data.csv'):
     分析雲林市區公車資料，對月票與非月票用戶進行視覺化分析並儲存圖表。
     """
     setup_visualization()
-    output_dir = '199_399_charts'
+    # 使用 config.py 中定義的輸出資料夾
+    output_dir = os.path.join('..', config.BUS_OUTPUT_DIR, '199_399_analysis')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         print(f"已建立資料夾: {output_dir}")

@@ -2,14 +2,27 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import sys
+
+# --- 從 config.py 載入設定 ---
+try:
+    # 假設 config.py 在上層目錄
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    import config
+except ImportError:
+    print("錯誤：無法找到 config.py。請確認您的專案結構。")
+    sys.exit(1)
+
 
 # --- 全域設定 ---
 plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-output_folder = 'charts'
+# 使用 config.py 中定義的輸出資料夾
+output_folder = os.path.join('..', config.BUS_OUTPUT_DIR, 'main_analysis')
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
+    print(f"已建立資料夾: {output_folder}")
 
 # --- 1. 資料讀取與預處理 ---
 def load_and_preprocess_data(filepath='unified_data.csv'):
