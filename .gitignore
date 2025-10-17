@@ -1,14 +1,39 @@
-# --- 忽略 Python 自動產生的檔案 ---
-
+# --- Python 自動產生的檔案 ---
 # Byte-compiled / optimized / DLL files (Python 編譯或優化後產生的檔案)
 __pycache__/
 *.py[cod]
 *$py.class
 
+# C extensions
+*.so
+
+# Distribution / packaging (打包與發布相關檔案)
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
 
 # --- 忽略大型資料檔 ---
 # 我們將所有資料都放在 data/ 資料夾內，所以直接忽略它
 data/
+# 忽略專案中任何位置的 .csv 檔案
+*.csv
 
 
 # --- 忽略分析腳本產生的結果 ---
@@ -26,9 +51,14 @@ douliu_charts/
 output/
 
 
-# --- 忽略開發環境相關檔案 (可選，但建議保留) ---
+# --- 忽略開發環境相關檔案 ---
 # 虛擬環境資料夾
 .env
 .venv
 env/
 venv/
+
+# IDE/編輯器設定檔 (例如 VS Code, PyCharm)
+.idea/
+.vscode/
+*.swp
