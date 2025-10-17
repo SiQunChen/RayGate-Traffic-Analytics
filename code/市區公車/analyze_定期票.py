@@ -34,36 +34,6 @@ def setup_visualization():
     if font_name is None:
         print("警告：找不到可用的中文字體。圖表中的中文可能無法正常顯示。")
 
-# --- 票種統一化函式 ---
-def unify_ticket_type(ticket_name):
-    """
-    根據關鍵字，將票種名稱統一分類。
-    """
-    ticket_name_str = str(ticket_name).strip()
-
-    # 關鍵字分類字典
-    ticket_keywords = {
-        '代幣卡': ['代幣', '代'],
-        '優待': ['敬老', '愛心', '陪伴', '博愛', '孩童', '優待', '兒童', '優惠', '國小', '新北學生卡', '雲林小', '半票'],
-        '學生': ['學生', '學童', '大學', '學'],
-        '普通': ['一般', '普通', '全票', '市民', '普卡'],
-        '定期票': ['199', '399']
-    }
-
-    # 依序檢查關鍵字
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['代幣卡']):
-        return '代幣卡'
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['優待']):
-        return '優待'
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['學生']):
-        return '學生'
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['普通']):
-        return '普通'
-    if any(keyword in ticket_name_str for keyword in ticket_keywords['定期票']):
-        return '定期票'
-
-    return '其他'
-
 
 def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     """
@@ -116,12 +86,6 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     if non_monthly_pass_users_df.empty:
         print("警告：沒有非月票用戶資料，將跳過此區塊的分析。")
     else:
-        # *** 新增處：在分析前，統一化非月票用戶的票種名稱 ***
-        print("正在統一化【非月票用戶】的票種名稱...")
-        # 使用 .loc 避免 SettingWithCopyWarning 警告
-        non_monthly_pass_users_df.loc[:, '票種名稱'] = non_monthly_pass_users_df['票種名稱'].apply(unify_ticket_type)
-        print("票種名稱統一化完成。")
-
         # *** 新增處：移除票種為「優待」的資料 ***
         print(f"統一化後，非月票用戶共有 {len(non_monthly_pass_users_df)} 筆資料。")
         original_count = len(non_monthly_pass_users_df)

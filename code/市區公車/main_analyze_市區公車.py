@@ -24,33 +24,35 @@ if not os.path.exists(output_folder):
     os.makedirs(output_folder)
     print(f"已建立資料夾: {output_folder}")
 
-# --- 1. 資料讀取與預處理 ---
+# --- 1. 資料讀取與預處理 (V2 - 簡化版) ---
 def load_and_preprocess_data(filepath=config.BUS_UNIFIED_DATA_FILE):
+    """
+    讀取由 data_loader_市區公車.py 產生的資料。
+    V2 版：由於特徵工程已在 data_loader 中完成，此處僅需讀取和基本清理。
+    """
     print("開始讀取與預處理資料...")
     try:
-        # 【修正DtypeWarning】: 明確指定 路線 和 司機 欄位的資料型態為字串(str)
-        df = pd.read_csv(filepath, dtype={'路線': str, '司機': str})
+        # 【修正DtypeWarning】: 明確指定 路線 和 卡號 欄位的資料型態為字串(str)
+        df = pd.read_csv(filepath, dtype={'路線': str, '卡號': str})
     except FileNotFoundError:
-        print(f"錯誤：找不到檔案 '{filepath}'。請確保檔案與此腳本在同一個資料夾中。")
+        print(f"錯誤：找不到檔案 '{filepath}'。請確保您已先執行 data_loader_市區公車.py。")
         return None
 
+    # 確保時間欄位為 datetime 物件，以利後續操作
     df['上車時間'] = pd.to_datetime(df['上車時間'], errors='coerce')
     df['下車時間'] = pd.to_datetime(df['下車時間'], errors='coerce')
-    df.dropna(subset=['上車時間', '下車時間'], inplace=True)
-    df['上車月份'] = df['上車時間'].dt.month
-    df['上車星期'] = df['上車時間'].dt.dayofweek
-    df['上車小時'] = df['上車時間'].dt.hour
-    df['平日/週末'] = df['上車星期'].apply(lambda x: '週末' if x >= 5 else '平日')
-    complete_trips = df['旅次是否完整'] == True
-    df.loc[complete_trips, '旅次時間_分'] = (df.loc[complete_trips, '下車時間'] - df.loc[complete_trips, '上車時間']).dt.total_seconds() / 60
 
-    print("資料預處理完成。")
+    # 移除 '上車時間' 或 '下車時間' 為空值的資料 (雖然 loader 會處理，但多一層保險)
+    df.dropna(subset=['上車時間', '下車時間'], inplace=True)
+
+    print("資料讀取與預處理完成。")
     return df
 
 # --- 2. 繪圖函式 ---
 
 def plot_monthly_ridership(df):
     print("正在產生圖表：每月總運量分析...")
+    # 使用 data_loader 產生的 '上車月份' 欄位
     monthly_counts = df['上車月份'].value_counts().sort_index()
 
     # 【新增】印出分析結果
@@ -71,6 +73,7 @@ def plot_monthly_ridership(df):
 
 def plot_weekly_ridership(df):
     print("正在產生圖表：週間總運量分析...")
+    # 使用 data_loader 產生的 '上車星期' 欄位
     weekly_counts = df['上車星期'].value_counts().sort_index()
     day_names = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
 
@@ -81,7 +84,7 @@ def plot_weekly_ridership(df):
     weekly_counts_display.index = day_names
     print(weekly_counts_display)
     print("---------------------------------\n")
-    
+
     plt.figure(figsize=(12, 7))
     sns.barplot(x=weekly_counts.index, y=weekly_counts.values, palette='plasma', hue=weekly_counts.index, legend=False)
     plt.title('週間總運量分析', fontsize=18, fontweight='bold')
@@ -115,8 +118,9 @@ def plot_top_routes(df, n=15):
 
 def plot_passenger_distribution(df):
     print("正在產生圖表：乘客票種結構分析...")
-    passenger_counts = df['票種分類'].value_counts()
-    passenger_percentages = df['票種分類'].value_counts(normalize=True) * 100
+    # 欄位名稱 '票種名稱' 由 data_loader 提供，此處不變
+    passenger_counts = df['票種名稱'].value_counts()
+    passenger_percentages = df['票種名稱'].value_counts(normalize=True) * 100
 
     # 【新增】印出分析結果
     print("\n--- 4. 乘客票種結構分析結果 ---")
@@ -138,8 +142,9 @@ def plot_passenger_distribution(df):
 
 def plot_avg_trip_duration(df, n=15):
     print(f"正在產生圖表：前 {n} 名平均旅次時間最長路線...")
-    valid_duration_df = df[df['旅次時間_分'] <= 180]
-    avg_duration = valid_duration_df.groupby('路線')['旅次時間_分'].mean().nlargest(n).sort_values(ascending=False)
+    # 【V2 修正】: 將 '旅次時間_分' 改為 '旅次時長(分)'
+    valid_duration_df = df[df['旅次時長(分)'] <= 180]
+    avg_duration = valid_duration_df.groupby('路線')['旅次時長(分)'].mean().nlargest(n).sort_values(ascending=False)
 
     # 【新增】印出分析結果
     print(f"\n--- 5. 前 {n} 名平均旅次時間最長路線結果 ---")
@@ -147,7 +152,6 @@ def plot_avg_trip_duration(df, n=15):
     print("------------------------------------------\n")
 
     plt.figure(figsize=(12, 9))
-    # 修正排序，讓圖表從長到短顯示
     sorted_avg_duration = avg_duration.sort_values()
     sns.barplot(y=sorted_avg_duration.index, x=sorted_avg_duration.values, orient='h', palette='coolwarm', hue=sorted_avg_duration.index, legend=False)
     plt.title(f'各路線平均旅次時間（前 {n} 名）', fontsize=18, fontweight='bold')
@@ -158,17 +162,19 @@ def plot_avg_trip_duration(df, n=15):
     plt.close()
 
 def plot_hourly_ridership(df):
-    print("正在產生圖表：平日與週末每小時運量比較...")
-    hourly_counts = df.groupby(['上車小時', '平日/週末']).size().unstack(fill_value=0)
+    print("正在產生圖表：平日與假日每小時運量比較...")
+    # 【V2 修正】: 將 '平日/週末' 改為 '日期類型'
+    hourly_counts = df.groupby(['上車小時', '日期類型']).size().unstack(fill_value=0)
 
     # 【新增】印出分析結果
-    print("\n--- 6. 平日與週末每小時運量比較結果 ---")
+    print("\n--- 6. 平日與假日每小時運量比較結果 ---")
     print(hourly_counts)
     print("----------------------------------------\n")
 
     plt.figure(figsize=(15, 8))
     hourly_counts.plot(kind='line', marker='o', ax=plt.gca())
-    plt.title('平日與週末每小時運量比較', fontsize=18, fontweight='bold')
+    # 【V2 修正】: 調整圖表標題
+    plt.title('平日與假日每小時運量比較', fontsize=18, fontweight='bold')
     plt.xlabel('小時', fontsize=12)
     plt.ylabel('平均搭乘人次', fontsize=12)
     plt.xticks(ticks=range(24), labels=[f'{i}:00' for i in range(24)], rotation=45)
@@ -219,28 +225,29 @@ def plot_top_od_pairs(df, n=15):
 
 def plot_student_pattern_per_route(df, min_records=20):
     print("正在為各路線產生學生平日通勤模式圖...")
-    
+
     per_route_folder = os.path.join(output_folder, '各路線學生通勤模式')
     if not os.path.exists(per_route_folder):
         os.makedirs(per_route_folder)
-        
-    student_df = df[(df['票種分類'] == '學生') & (df['平日/週末'] == '平日')]
+
+    # 【V2 修正】: 將 '平日/週末' 改為 '日期類型'
+    student_df = df[(df['票種名稱'] == '學生') & (df['日期類型'] == '平日')]
     unique_routes = student_df['路線'].unique()
-    
+
     print(f"偵測到 {len(unique_routes)} 條路線有學生搭乘記錄，將開始逐一製圖...")
-    
+
     # 【新增】印出分析結果的標題
     print("\n--- 9. 各路線學生平日通勤模式分析結果 ---")
-    
+
     for route in unique_routes:
         route_df = student_df[student_df['路線'] == route]
-        
+
         if len(route_df) < min_records:
             print(f"-> 路線 {route} 的學生搭乘資料量過少 ({len(route_df)} 筆)，已跳過。")
             continue
-            
+
         print(f"-> 正在產生路線 {route} 的圖表...")
-        
+
         student_hourly = route_df.groupby('上車小時').size()
         student_hourly = student_hourly.reindex(range(24), fill_value=0)
 
@@ -248,7 +255,7 @@ def plot_student_pattern_per_route(df, min_records=20):
         print(f"\n===== 路線 {route} 學生搭乘時段分佈 =====")
         print(student_hourly)
         print("=" * 40)
-        
+
         plt.figure(figsize=(15, 8))
         sns.lineplot(x=student_hourly.index, y=student_hourly.values, marker='o', color='dodgerblue')
         plt.title(f'路線 {route} - 學生平日搭乘時段分佈', fontsize=18, fontweight='bold')
@@ -257,7 +264,7 @@ def plot_student_pattern_per_route(df, min_records=20):
         plt.xticks(ticks=range(24))
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()
-        
+
         safe_route_name = str(route).replace('/', '_')
         plt.savefig(os.path.join(per_route_folder, f'學生通勤模式_路線_{safe_route_name}.png'))
         plt.close()
@@ -266,11 +273,12 @@ def plot_student_pattern_per_route(df, min_records=20):
     print("所有路線的學生通勤模式圖表已產生完畢。")
 
 def plot_elderly_pattern_and_destinations(df):
-    elderly_df = df[df['票種分類'] == '優待']
+    # 【V2 修正】: 票種名稱在 data_loader 已統一，此處可直接使用
+    elderly_df = df[df['票種名稱'] == '優待']
 
     print("正在產生圖表：長者愛心乘客出行模式...")
     elderly_hourly = elderly_df.groupby('上車小時').size().reindex(range(24), fill_value=0)
-    
+
     # 【新增】印出分析結果
     print("\n--- 10. 長者愛心乘客分析結果 ---")
     print("===== 優待乘客出行時段分佈 =====")
@@ -279,7 +287,7 @@ def plot_elderly_pattern_and_destinations(df):
 
     print("正在產生圖表：優待乘客熱門目的地...")
     top_destinations = elderly_df['下車站名'].value_counts().nlargest(15)
-    
+
     print("\n===== 優待乘客熱門目的地 (Top 15) =====")
     print(top_destinations)
     print("------------------------------------\n")
@@ -293,7 +301,7 @@ def plot_elderly_pattern_and_destinations(df):
     ax1.grid(True, linestyle='--', alpha=0.7)
     ax1.axvspan(9, 11, color='lightgreen', alpha=0.4, label='日間高峰')
     ax1.legend()
-    
+
     sns.barplot(y=top_destinations.index, x=top_destinations.values, orient='h', palette='BuGn_r', ax=ax2, hue=top_destinations.index, legend=False)
     ax2.set_title('優待乘客熱門目的地（下車站點）', fontsize=16, fontweight='bold')
     ax2.set_xlabel('下車人次', fontsize=12)
@@ -301,6 +309,7 @@ def plot_elderly_pattern_and_destinations(df):
     plt.tight_layout()
     plt.savefig(os.path.join(output_folder, '10_長者愛心乘客分析.png'))
     plt.close()
+
 
 # --- 3. 主程式執行區塊 ---
 if __name__ == '__main__':
@@ -310,7 +319,7 @@ if __name__ == '__main__':
         print("\n==============================================")
         print("          開始輸出各項分析結果          ")
         print("==============================================\n")
-        
+
         plot_monthly_ridership(bus_data)
         plot_weekly_ridership(bus_data)
         plot_top_routes(bus_data)
