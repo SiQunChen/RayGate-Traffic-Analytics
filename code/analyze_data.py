@@ -1,6 +1,13 @@
 # 導入 pandas 函式庫，並使用 pd 作為簡稱，這是慣例
 import pandas as pd
 
+# --- 新增的程式碼 ---
+# 設定 Pandas 的顯示選項，讓它可以顯示所有的欄位
+# 'display.max_columns' 設為 None 表示不限制顯示的欄位數量
+pd.set_option('display.max_columns', None)
+# --------------------
+
+
 def analyze_csv_format(file_path):
     """
     分析給定路徑的 CSV 檔案格式。
