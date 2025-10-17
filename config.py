@@ -1,6 +1,6 @@
 # 檔名: config.py
 # =============================================================================
-#  組態設定檔 (V4 - 新增測試模式)
+#  組態設定檔 (V5 - 優化轉乘分析)
 # =============================================================================
 #
 #  這個檔案包含了所有分析腳本中會用到的參數。
@@ -27,9 +27,6 @@ TEST_MODE_ROWS = 1000  # 測試模式下讀取的資料筆數
 
 # 統一後的市區公車資料檔名
 BUS_UNIFIED_DATA_FILE = 'unified_data.csv'
-
-# 斗六市區公車分析的目標車站名稱
-BUS_DOULIU_TARGET_STATION = '斗六火車站'
 
 # 市區公車分析的輸出子資料夾
 BUS_OUTPUT_DIR = os.path.join(OUTPUT_BASE_DIR, '1_市區公車')
@@ -63,9 +60,6 @@ TRA_TARGET_STATIONS = [
     '嘉北', '嘉義'
 ]
 
-# 斗六台鐵分析的目標車站名稱
-TRA_DOULIU_TARGET_STATION = '斗六'
-
 
 # --- [公路客運分析設定] ---
 
@@ -77,3 +71,17 @@ HIGHWAY_BUS_JITONG_FILE = "日統113.xlsx"
 
 # 嘉義客運的資料檔案路徑 (相對於 公路客運/嘉義/analyze.py)
 HIGHWAY_BUS_CHIAYI_FOLDER = "data"
+
+
+# --- [!!! 優化：轉乘行為分析設定 !!!] ---
+
+# 轉乘行為分析的輸出子資料夾
+TRANSFER_ANALYSIS_OUTPUT_DIR = os.path.join(OUTPUT_BASE_DIR, '5_轉乘行為分析')
+
+# 設定要進行轉乘分析的「市區公車站點名稱」。
+# 設為 None 或空字串 '' 則會跳過此分析。
+BUS_TRANSFER_STATION = None  # 例如: '斗六火車站'
+
+# 設定要進行轉乘分析的「台鐵車站名稱」。
+# 設為 None 或空字串 '' 則會跳過此分析。
+TRA_TRANSFER_STATION = None    # 例如: '斗六'

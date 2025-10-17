@@ -1,3 +1,5 @@
+# 檔名: station_transfer_analyze.py
+# 功能: 分析指定市區公車站點在不同時段、平假日的詳細人流狀況。
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -43,8 +45,7 @@ def analyze_and_plot_by_time_and_day_type(df, station_name, output_folder):
     分析指定車站於「平日」及「假日」在四個不同時段的上、下車尖峰。
     """
     print(f"\n開始分析車站：'{station_name}' 的時段流量...")
-    # 確保資料夾存在 (主程式區塊已建立，此處為雙重保險)
-    os.makedirs(output_folder, exist_ok=True) 
+    os.makedirs(output_folder, exist_ok=True)
     print(f"圖表將儲存於：'{output_folder}'")
 
     station_boardings_df = df[df['上車站名'] == station_name].copy()
@@ -87,38 +88,27 @@ def analyze_and_plot_by_time_and_day_type(df, station_name, output_folder):
         plt.xlim(start_interval, end_interval - 1)
         plt.grid(True, which='both', linestyle='--', alpha=0.7); plt.legend(title='類型'); plt.tight_layout()
         safe_chunk_name = chunk_name.split(" ")[0]
-        output_filename = os.path.join(output_folder, f'{station_name}__{safe_chunk_name}_analysis.png')
+        output_filename = os.path.join(output_folder, f'bus_transfer_{station_name}_{safe_chunk_name}.png')
         plt.savefig(output_filename); plt.close()
 
     print(f"\n所有時段流量圖已成功產生並儲存於 '{output_folder}' 資料夾中。")
 
-    # 8. 產生文字報告
-    print(f"\n\n===== 市區公車在{station_name}的人流時段分析 =====")
-    print("\n--- 各時段每5分鐘詳細流量 ---")
-
+    print(f"\n\n===== 市區公車在 {station_name} 的人流時段分析報告 =====")
     for chunk_name, (start_interval, end_interval) in time_chunks.items():
         print(f"\n時段: {chunk_name}")
-        
         chunk_data = peak_df.loc[start_interval : end_interval - 1]
         active_times = chunk_data[chunk_data.sum(axis=1) > 0]
-        
         if active_times.empty:
             print("  此時段無搭乘紀錄。")
             continue
-
         for idx, row in active_times.iterrows():
             hour = idx // 12
             minute = (idx % 12) * 5
             time_str = f'{hour:02d}:{minute:02d}'
-            weekday_on = int(row['平日上車'])
-            weekday_off = int(row['平日下車'])
-            weekend_on = int(row['假日上車'])
-            weekend_off = int(row['假日下車'])
-            print(f"  時間: {time_str} -> 平日(上車:{weekday_on}, 下車:{weekday_off}), 假日(上車:{weekend_on}, 下車:{weekend_off})")
-
+            print(f"  時間: {time_str} -> 平日(上車:{int(row['平日上車'])}, 下車:{int(row['平日下車'])}), 假日(上車:{int(row['假日上車'])}, 下車:{int(row['假日下車'])})")
     print("\n================= 分析結束 =================\n")
     
-def plot_morning_destinations(df, station_name, output_folder='douliu_charts', top_n=15):
+def plot_morning_destinations(df, station_name, output_folder, top_n=15):
     print(f"開始分析 '{station_name}' 的平日早上通勤目的地...")
     df_weekday = df[df['上車時間'].dt.dayofweek < 5].copy()
     start_time, end_time = pd.to_datetime('06:30').time(), pd.to_datetime('09:00').time()
@@ -128,13 +118,13 @@ def plot_morning_destinations(df, station_name, output_folder='douliu_charts', t
         return
     destination_counts = df_morning_rush['下車站名'].value_counts().nlargest(top_n)
     plt.figure(figsize=(12, 8)); sns.barplot(x=destination_counts.values, y=destination_counts.index, hue=destination_counts.index, palette='viridis', orient='h', legend=False)
-    plt.title(f'平日早上 (06:30-09:00) {station_name}上車之主要目的地 (前{top_n}名)', fontsize=16, fontweight='bold')
+    plt.title(f'平日早上 (06:30-09:00) 從 {station_name} 上車之主要目的地 (前{top_n}名)', fontsize=16, fontweight='bold')
     plt.xlabel('旅次數', fontsize=12); plt.ylabel('目的地車站', fontsize=12); plt.tight_layout()
-    output_filename = os.path.join(output_folder, f'{station_name}_morning_destinations.png')
+    output_filename = os.path.join(output_folder, f'bus_transfer_{station_name}_morning_dest.png')
     plt.savefig(output_filename); plt.close()
     print(f"早上通勤目的地圖表已儲存至: {output_filename}")
 
-def plot_evening_origins(df, station_name, output_folder='douliu_charts', top_n=15):
+def plot_evening_origins(df, station_name, output_folder, top_n=15):
     print(f"\n開始分析 '{station_name}' 的平日傍晚通勤起始站...")
     df_weekday = df[df['下車時間'].dt.dayofweek < 5].copy()
     start_time, end_time = pd.to_datetime('16:00').time(), pd.to_datetime('18:30').time()
@@ -144,27 +134,29 @@ def plot_evening_origins(df, station_name, output_folder='douliu_charts', top_n=
         return
     origin_counts = df_evening_rush['上車站名'].value_counts().nlargest(top_n)
     plt.figure(figsize=(12, 8)); sns.barplot(x=origin_counts.values, y=origin_counts.index, hue=origin_counts.index, palette='plasma', orient='h', legend=False)
-    plt.title(f'平日傍晚 (16:00-18:30) 抵達{station_name}之主要起始站 (前{top_n}名)', fontsize=16, fontweight='bold')
+    plt.title(f'平日傍晚 (16:00-18:30) 抵達 {station_name} 之主要起始站 (前{top_n}名)', fontsize=16, fontweight='bold')
     plt.xlabel('旅次數', fontsize=12); plt.ylabel('起始車站', fontsize=12); plt.tight_layout()
-    output_filename = os.path.join(output_folder, f'{station_name}_evening_origins.png')
+    output_filename = os.path.join(output_folder, f'bus_transfer_{station_name}_evening_org.png')
     plt.savefig(output_filename); plt.close()
     print(f"傍晚通勤起始站圖表已儲存至: {output_filename}")
 
 
 # --- 主程式執行區塊 ---
 if __name__ == '__main__':
-    # 從 config 讀取檔案路徑
+    TARGET_STATION = config.BUS_TRANSFER_STATION
+
+    if not TARGET_STATION:
+        print("設定檔 (config.py) 中未指定市區公車轉乘分析車站 (BUS_TRANSFER_STATION)。")
+        print("將跳過此分析腳本。")
+        sys.exit(0)
+
     data_file = config.BUS_UNIFIED_DATA_FILE
     bus_data = load_data(filepath=data_file)
 
     if bus_data is not None:
-        # 從 config 讀取目標車站和輸出資料夾
-        TARGET_STATION = config.BUS_DOULIU_TARGET_STATION
+        # *** 核心修改：在輸出路徑中加入 "市區公車" 子資料夾 ***
+        OUTPUT_FOLDER = os.path.join('..', config.TRANSFER_ANALYSIS_OUTPUT_DIR, '市區公車')
         
-        # *** 核心修正：使用 config.py 的設定來建立統一的輸出路徑 ***
-        OUTPUT_FOLDER = os.path.join('..', config.BUS_OUTPUT_DIR, 'douliu_analysis')
-        
-        # 確保輸出資料夾存在
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
         analyze_and_plot_by_time_and_day_type(bus_data, station_name=TARGET_STATION, output_folder=OUTPUT_FOLDER)
