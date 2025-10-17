@@ -1,6 +1,17 @@
 import pandas as pd
+import os
+import sys
 
-def analyze_card_usage(file_path='unified_data.csv'):
+# --- 從 config.py 載入設定 ---
+try:
+    # 從 code/市區公車/ 回到根目錄
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+    import config
+except ImportError:
+    print("錯誤：無法找到 config.py。請確認您的專案結構。")
+    sys.exit(1)
+
+def analyze_card_usage(file_path=config.BUS_UNIFIED_DATA_FILE):
     """
     分析 unified_data.csv 中的卡號使用情況。
 

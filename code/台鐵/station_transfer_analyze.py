@@ -14,7 +14,7 @@ import sys
 
 # --- 從 config.py 載入設定 ---
 try:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
     import config
 except ImportError:
     print("錯誤：無法找到 config.py。請確認您的專案結構。")
@@ -30,7 +30,7 @@ def main():
         return
 
     # *** 核心修改：在輸出路徑中加入 "台鐵" 子資料夾 ***
-    output_base_dir = os.path.join('..', config.TRANSFER_ANALYSIS_OUTPUT_DIR, '台鐵')
+    output_base_dir = os.path.join('..', '..', config.TRANSFER_ANALYSIS_OUTPUT_DIR, '台鐵')
     output_csv_dir = os.path.join(output_base_dir, 'csv')
     output_chart_dir = os.path.join(output_base_dir, 'charts')
     os.makedirs(output_csv_dir, exist_ok=True)

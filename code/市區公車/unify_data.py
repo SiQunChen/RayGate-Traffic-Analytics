@@ -1,26 +1,30 @@
+# 檔名: code/市區公車/unify_data.py
 import pandas as pd
 import os
 import glob
 import re
-import sys # 匯入 sys 模組
+import sys 
 
 # --- 從 config.py 載入設定 ---
 try:
-    # 將上層目錄 (專案根目錄) 加入到 Python 的搜尋路徑中
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    # 現在腳本在 code/市區公車/，需要回到根目錄才能找到 config.py
+    # os.path.dirname(__file__) -> 當前檔案的路徑 (code/市區公車)
+    # '..' -> 上一層 (code)
+    # '..' -> 再上一層 (專案根目錄)
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
     import config
 except ImportError:
     print("錯誤：無法找到 config.py。請確認您的專案結構。")
     sys.exit(1)
 
-# 目標欄位，我們希望所有資料都轉換成這個格式
+# 目標欄位 (不變)
 TARGET_COLUMNS = [
     '路線', '司機', '車號', '卡號', '票種名稱', '往返程', '上車時間',
     '上車站名', '下車時間', '下車站名', '消費扣款', '旅次是否完整'
 ]
 
 # --- (process_format_1, process_format_2, process_format_3 等函式保持不變) ---
-
+# ... (此處省略相同的函式內容) ...
 def process_format_1(df):
     """
     處理格式1 (例如: 101, 102, 201號路線)
@@ -104,6 +108,7 @@ def normalize_station_names(df):
     print("站名正規化完成。")
     return df
 
+
 def main():
     """
     主函式，讀取所有檔案並進行處理與清理
@@ -112,18 +117,21 @@ def main():
     if config.TEST_MODE:
         print(f"--- [測試模式已啟用] ---\n所有 Excel 檔案將只讀取前 {nrows_to_read} 行。\n--------------------------\n")
         
-    files = glob.glob('data/*.xlsx')
+    # *** 核心修改：從 config 讀取資料夾路徑 ***
+    data_dir = config.BUS_RAW_DATA_DIR
+    files = glob.glob(os.path.join(data_dir, '*.xlsx'))
+    
     if not files:
-        print("錯誤：在 'data' 資料夾中找不到任何 .xlsx 檔案。")
+        print(f"錯誤：在 '{data_dir}' 資料夾中找不到任何 .xlsx 檔案。")
         return
 
     all_data = []
     for file in files:
-        print(f"正在處理檔案: {file}")
+        print(f"正在處理檔案: {os.path.basename(file)}")
         try:
             xls = pd.ExcelFile(file)
         except Exception as e:
-            print(f"  - 無法讀取檔案 {file}，錯誤訊息: {e}")
+            print(f"  - 無法讀取檔案 {os.path.basename(file)}，錯誤訊息: {e}")
             continue
 
         for sheet_name in xls.sheet_names:
@@ -175,7 +183,12 @@ def main():
             if col not in final_df.columns:
                 final_df[col] = None
         final_df = final_df[TARGET_COLUMNS]
-        output_filename = 'unified_data.csv'
+        
+        # *** 核心修改：從 config 讀取輸出檔案路徑 ***
+        output_filename = config.BUS_UNIFIED_DATA_FILE
+        # 確保輸出目錄存在
+        os.makedirs(os.path.dirname(output_filename), exist_ok=True)
+        
         final_df.to_csv(output_filename, index=False, encoding='utf-8-sig')
         print(f"\n資料已成功合併、清理、篩選並儲存至 {output_filename}")
     else:

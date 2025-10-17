@@ -29,8 +29,8 @@ import sys
 
 # --- 步驟 0: 從 config.py 載入全域設定 ---
 try:
-    # 確保能從根目錄找到 config.py
-    # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) # 這行可能不需要，取決於您的執行方式
+    # 從 code/ 回到根目錄
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     import config
 except ImportError:
     print("錯誤：無法找到 config.py。請確認您的專案結構。")

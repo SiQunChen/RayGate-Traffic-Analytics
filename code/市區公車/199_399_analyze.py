@@ -8,7 +8,7 @@ import sys
 # --- 從 config.py 載入設定 ---
 try:
     # 假設 config.py 在上層目錄
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
     import config
 except ImportError:
     print("錯誤：無法找到 config.py。請確認您的專案結構。")
@@ -125,13 +125,13 @@ def unify_ticket_type(ticket_name):
     else:
         return '其他'
 
-def analyze_and_visualize_bus_data(file_path='unified_data.csv'):
+def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     """
     分析雲林市區公車資料，對月票與非月票用戶進行視覺化分析並儲存圖表。
     """
     setup_visualization()
     # 使用 config.py 中定義的輸出資料夾
-    output_dir = os.path.join('..', config.BUS_OUTPUT_DIR, '199_399_analysis')
+    output_dir = os.path.join('..', '..', config.BUS_OUTPUT_DIR, '199_399_analysis')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         print(f"已建立資料夾: {output_dir}")
@@ -514,4 +514,4 @@ def analyze_and_visualize_bus_data(file_path='unified_data.csv'):
     print("\n所有分析與圖表產生完畢！")
 
 if __name__ == '__main__':
-    analyze_and_visualize_bus_data('unified_data.csv')
+    analyze_and_visualize_bus_data()

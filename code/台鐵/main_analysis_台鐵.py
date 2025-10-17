@@ -14,7 +14,7 @@ import sys
 # --- 從 config.py 載入設定 ---
 try:
     # 假設 config.py 在上層目錄
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
     import config
 except ImportError:
     print("錯誤：無法找到 config.py。請確認您的專案結構。")
@@ -24,8 +24,8 @@ except ImportError:
 # 建立輸出資料夾
 # ==============================================================================
 # 使用 config.py 中定義的輸出資料夾
-output_csv_dir = os.path.join('..', config.TRA_OUTPUT_DIR, 'csv')
-output_chart_dir = os.path.join('..', config.TRA_OUTPUT_DIR, 'charts')
+output_csv_dir = os.path.join('..', '..', config.TRA_OUTPUT_DIR, 'csv')
+output_chart_dir = os.path.join('..', '..', config.TRA_OUTPUT_DIR, 'charts')
 
 os.makedirs(output_csv_dir, exist_ok=True)
 os.makedirs(output_chart_dir, exist_ok=True)

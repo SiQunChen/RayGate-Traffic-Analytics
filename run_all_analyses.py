@@ -1,33 +1,36 @@
-# 檔名: run_all_analyses.py (V4 - 整合轉乘分析)
-# 請將此檔案放在專案的根目錄下 (與 "市區公車", "台鐵" 等資料夾同層)
+# 檔名: run_all_analyses.py (V5 - 適應新資料夾結構)
+# 請將此檔案放在專案的根目錄下 (與 "code", "data" 等資料夾同層)
 
 import os
 import subprocess
 import sys
 import time
-import config # 匯入設定檔以檢查轉乘分析設定
+import config # 匯入設定檔
 
 # =============================================================================
-#  輔助函式
+#  輔助函式 (此部分不變)
 # =============================================================================
 
 def run_script(script_path):
     """
     在指定的路徑下執行一個 Python 腳本。
     """
+    # 執行腳本時，暫時切換到腳本所在的目錄，以確保相對路徑讀取正確
     script_dir = os.path.dirname(script_path)
     script_name = os.path.basename(script_path)
     original_dir = os.getcwd()
     
     print(f"\n{'='*25}")
     print(f"  即將執行: {script_name}")
-    print(f"  目標路徑: {os.path.abspath(script_dir)}")
+    print(f"  目標路徑: {os.path.abspath(script_path)}")
     print(f"{'='*25}")
     
+    # 執行前切換工作目錄到腳本所在位置
     if script_dir:
         os.chdir(script_dir)
         
     try:
+        # 執行時，不再需要傳遞路徑，因為已經在那個資料夾裡了
         process = subprocess.run(
             [sys.executable, script_name], 
             check=True, 
@@ -44,7 +47,7 @@ def run_script(script_path):
         print(f"✅ {script_name} 執行成功！")
         
     except FileNotFoundError:
-        print(f"❌ 錯誤：找不到腳本 '{script_name}' 於路徑 '{script_dir}'。")
+        print(f"❌ 錯誤：找不到腳本 '{script_name}'。")
     except subprocess.CalledProcessError as e:
         print(f"❌ 錯誤：執行 {script_name} 時發生問題。")
         print("--- [錯誤訊息] ---")
@@ -59,6 +62,7 @@ def run_script(script_path):
         print(f"❌ 發生未預期的錯誤: {e}")
         sys.exit(f"分析流程已中止。")
     finally:
+        # 無論成功或失敗，都切換回原始的工作目錄
         os.chdir(original_dir)
         time.sleep(1)
 
@@ -73,34 +77,39 @@ def main():
     start_time = time.time()
     print("🚀 開始執行全部分析流程...")
     print("將會依據 'config.py' 的設定進行分析。")
+    
+    # 取得 code 資料夾的路徑
+    code_dir = config.CODE_BASE_DIR
 
     # --- 流程 1: 市區公車分析 ---
     print("\n--- [階段一：市區公車分析] ---")
-    run_script('市區公車/unify_data.py')
-    run_script('市區公車/main_analyze_市區公車.py')
-    run_script('市區公車/199_399_analyze.py')
+    run_script(os.path.join(code_dir, '市區公車', 'unify_data.py'))
+    run_script(os.path.join(code_dir, '市區公車', 'main_analyze_市區公車.py'))
+    run_script(os.path.join(code_dir, '市區公車', '199_399_analyze.py'))
 
     # --- 流程 2: 乘客分群分析 ---
     print("\n--- [階段二：乘客分群分析 (Cluster Analysis)] ---")
-    run_script('cluster_analysis.py')
+    run_script(os.path.join(code_dir, 'cluster_analysis.py'))
 
     # --- 流程 3: 台鐵資料分析 ---
     print("\n--- [階段三：台鐵資料分析] ---")
-    run_script('台鐵/main_analysis_台鐵.py')
+    run_script(os.path.join(code_dir, '台鐵', 'main_analysis_台鐵.py'))
     
     # --- 流程 4: 公路客運分析 ---
     print("\n--- [階段四：公路客運分析] ---")
-    run_script('公路客運/日統/analyze.py')
-    run_script('公路客運/嘉義/analyze.py')
+    run_script(os.path.join(code_dir, '公路客運', '日統', 'analyze.py'))
+    run_script(os.path.join(code_dir, '公路客運', '嘉義', 'analyze.py'))
     
     # --- 流程 5: 轉乘行為分析 (可選) ---
     print("\n--- [階段五：轉乘行為分析] ---")
-    if config.BUS_TRANSFER_STATION and config.TRA_TRANSFER_STATION:
+    if config.BUS_TRANSFER_STATION or config.TRA_TRANSFER_STATION:
         print("偵測到已設定轉乘分析目標車站，即將開始分析...")
-        run_script('市區公車/station_transfer_analyze.py')
-        run_script('台鐵/station_transfer_analyze.py')
+        if config.BUS_TRANSFER_STATION:
+            run_script(os.path.join(code_dir, '市區公車', 'station_transfer_analyze.py'))
+        if config.TRA_TRANSFER_STATION:
+            run_script(os.path.join(code_dir, '台鐵', 'station_transfer_analyze.py'))
     else:
-        print("在 'config.py' 中未設定轉乘分析的目標車站 (BUS_TRANSFER_STATION 或 TRA_TRANSFER_STATION)。")
+        print("在 'config.py' 中未設定轉乘分析的目標車站。")
         print("已跳過此分析階段。")
 
 
@@ -109,6 +118,7 @@ def main():
     print(f"總耗時: {end_time - start_time:.2f} 秒")
 
 if __name__ == '__main__':
+    # 確保不論從哪裡執行此腳本，都能找到 config.py
     script_directory = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_directory)
     

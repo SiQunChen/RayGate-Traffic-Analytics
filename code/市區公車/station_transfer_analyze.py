@@ -9,7 +9,7 @@ import sys
 # --- 從 config.py 載入設定 ---
 try:
     # 假設 config.py 在上層目錄
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
     import config
 except ImportError:
     print("錯誤：無法找到 config.py。請確認您的專案結構。")
@@ -154,8 +154,8 @@ if __name__ == '__main__':
     bus_data = load_data(filepath=data_file)
 
     if bus_data is not None:
-        # *** 核心修改：在輸出路徑中加入 "市區公車" 子資料夾 ***
-        OUTPUT_FOLDER = os.path.join('..', config.TRANSFER_ANALYSIS_OUTPUT_DIR, '市區公車')
+        # 從 code/市區公車/ 需要往上兩層才能到專案根目錄
+        OUTPUT_FOLDER = os.path.join('..', '..', config.TRANSFER_ANALYSIS_OUTPUT_DIR, '市區公車')
         
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 

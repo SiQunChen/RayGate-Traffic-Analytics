@@ -1,11 +1,21 @@
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import os
+import sys
+
+# --- 從 config.py 載入設定 ---
+try:
+    # 從 code/台鐵/ 回到根目錄
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+    import config
+except ImportError:
+    print("錯誤：無法找到 config.py。請確認您的專案結構。")
+    sys.exit(1)
 
 # --- 設定 ---
-csv_dir = 'analysis_results' 
-chart_dir = 'charts' 
+# 從 config 讀取台鐵分析的輸出路徑
+base_output_dir = os.path.join('..', '..', config.TRA_OUTPUT_DIR)
+csv_dir = os.path.join(base_output_dir, 'csv')
+chart_dir = os.path.join(base_output_dir, 'charts')
 
 # 確保輸出圖表的資料夾存在
 os.makedirs(chart_dir, exist_ok=True)

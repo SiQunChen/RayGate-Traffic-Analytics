@@ -6,13 +6,13 @@ import sys # 匯入 sys 模組
 # --- 從 config.py 載入設定 ---
 try:
     # 假設 config.py 在上層目錄
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
     import config
 except ImportError:
     print("錯誤：無法找到 config.py。請確認您的專案結構。")
     sys.exit(1)
 
-def load_and_save_data(output_filename='cleaned_tra_data.csv'):
+def load_and_save_data(output_filename=config.TRA_CLEANED_DATA_FILE):
     """
     讀取、清理、整合所有四個臺鐵資料集，並將結果儲存成一個 CSV 檔。
     """
@@ -28,9 +28,10 @@ def load_and_save_data(output_filename='cleaned_tra_data.csv'):
         print("--------------------------\n")
 
     all_dfs = []
+    data_dir = config.TRA_RAW_DATA_DIR
 
     # --- 檔案3: 臺鐵非電子票證資料 ---
-    non_ic_file = '臺鐵非電子票證資料.csv'
+    non_ic_file = os.path.join(data_dir, '臺鐵非電子票證資料.csv')
     try:
         # *** 核心修改：使用選擇的 reader 並加入 nrows ***
         df = reader.read_csv(non_ic_file, skiprows=[1], header=0,
@@ -51,7 +52,7 @@ def load_and_save_data(output_filename='cleaned_tra_data.csv'):
         print(f"警告: 找不到檔案 {non_ic_file}，將跳過。")
 
     # --- 檔案4: 臺鐵電子票證資料(TO1A) ---
-    ic_file = '臺鐵電子票證資料(TO1A).csv'
+    ic_file = os.path.join(data_dir, '臺鐵電子票證資料(TO1A).csv')
     try:
         # *** 核心修改：使用選擇的 reader 並加入 nrows ***
         df = reader.read_csv(ic_file, skiprows=[1], header=0,
@@ -88,6 +89,7 @@ def load_and_save_data(output_filename='cleaned_tra_data.csv'):
     # --- (後續的儲存程式碼不變) ---
     print(f"\n--- 正在將清洗後的資料儲存至 '{output_filename}' ---")
     try:
+        os.makedirs(os.path.dirname(output_filename), exist_ok=True)
         combined_df.to_csv(output_filename, single_file=True, index=False, encoding='utf-8-sig')
         print(f"成功！資料已儲存至 '{os.path.abspath(output_filename)}'")
     except Exception as e:
