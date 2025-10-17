@@ -39,11 +39,19 @@ def load_data(file_path):
     讀取單一Excel檔案中的所有工作表。
     """
     print(f"步驟 1: 開始讀取 Excel 檔案 '{file_path}'...")
+    # *** 新增：測試模式 ***
+    nrows_to_read = config.TEST_MODE_ROWS if config.TEST_MODE else None
+    if config.TEST_MODE:
+        print(f"--- [測試模式已啟用] ---")
+        print(f"所有工作表將只讀取前 {nrows_to_read} 行。")
+        print("--------------------------\n")
+        
     if not os.path.exists(file_path):
         print(f"錯誤：找不到檔案 '{file_path}'。請檢查 config.py 中的 HIGHWAY_BUS_JITONG_FILE 設定。")
         return None
     try:
-        all_sheets = pd.read_excel(file_path, sheet_name=None)
+        # *** 核心修改：在讀取時傳入 nrows ***
+        all_sheets = pd.read_excel(file_path, sheet_name=None, nrows=nrows_to_read)
         print(f"找到 {len(all_sheets)} 個工作表。")
         full_df = pd.concat(all_sheets.values(), ignore_index=True)
         print(f"資料整合完成，共 {len(full_df)} 筆乘車紀錄。")

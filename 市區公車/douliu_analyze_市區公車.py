@@ -1,5 +1,3 @@
-# 檔名: douliu_analyze_市區公車.py (V3 - 統一輸出路徑)
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns

@@ -43,6 +43,13 @@ def load_data(folder_path):
     讀取指定資料夾內所有 Excel 檔案並整合。
     """
     print(f"步驟 1: 開始讀取資料夾 '{folder_path}' 內的 Excel 檔案...")
+    # *** 新增：測試模式 ***
+    nrows_to_read = config.TEST_MODE_ROWS if config.TEST_MODE else None
+    if config.TEST_MODE:
+        print(f"--- [測試模式已啟用] ---")
+        print(f"所有 Excel 檔案將只讀取前 {nrows_to_read} 行。")
+        print("--------------------------\n")
+
     if not os.path.isdir(folder_path):
         print(f"錯誤：找不到資料夾 '{folder_path}'。請確認此程式的相同路徑下有 'data' 資料夾。")
         return None
@@ -56,7 +63,8 @@ def load_data(folder_path):
     print(f"找到 {len(all_files)} 個 Excel 檔案，開始讀取...")
     for file_path in all_files:
         try:
-            df = pd.read_excel(file_path)
+            # *** 核心修改：加入 nrows 參數 ***
+            df = pd.read_excel(file_path, nrows=nrows_to_read)
             df_list.append(df)
             print(f"  - 已成功讀取: {os.path.basename(file_path)}")
         except Exception as e:

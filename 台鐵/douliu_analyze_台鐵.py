@@ -1,10 +1,9 @@
-# 檔名: douliu_analyze_台鐵.py (V2 - 整合 config.py)
-
 import matplotlib
 matplotlib.use('Agg')
 
 import pandas as pd
 import dask.dataframe as dd
+# data_loader 已經修正，這裡不用改
 from data_loader import load_and_save_data
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker

@@ -1,10 +1,9 @@
-# 這是主分析檔案：main_analysis.py (已加入區間篩選與斗六站尖峰分析)
-
 import matplotlib
 matplotlib.use('Agg')
 
 import pandas as pd
 import dask.dataframe as dd
+# data_loader 已經修正，這裡不用改
 from data_loader import load_all_data
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
