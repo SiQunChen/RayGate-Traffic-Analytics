@@ -1,4 +1,3 @@
-# 檔名: analyze_定期票.py (V2 - 已與 data_loader_市區公車.py V2 同步)
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -39,7 +38,6 @@ def setup_visualization():
 def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     """
     分析雲林市區公車資料，對月票與非月票用戶進行視覺化分析並儲存圖表。
-    V2 版：已適配 data_loader_市區公車.py 產生的新欄位。
     """
     setup_visualization()
     # 使用 config.py 中定義的輸出資料夾
@@ -49,24 +47,24 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
         print(f"已建立資料夾: {output_dir}")
 
     try:
-        # 【V2 修改】data_loader 已處理 DtypeWarning，此處可簡化
-        df = pd.read_csv(file_path, dtype={'路線': str, '卡號': str})
+        df = pd.read_csv(file_path, dtype={'路線': str, '司機': str, '車號': str, '卡號': str})
         print(f"成功讀取資料，總共有 {len(df)} 筆記錄。")
     except FileNotFoundError:
-        print(f"錯誤：找不到檔案 '{file_path}'。請確認您已執行 data_loader_市區公車.py。")
+        print(f"錯誤：找不到檔案 '{file_path}'。請確認檔案路徑是否正確。")
         return
     
-    # --- 【V2 修改】資料前處理簡化 ---
-    # data_loader 已將時間轉為 datetime 物件，並建立了所需的時間特徵欄位
-    # 此處僅需確認 '上車時間' 欄位存在且無空值即可
+    # --- 資料前處理 ---
     df['上車時間'] = pd.to_datetime(df['上車時間'], errors='coerce')
     df.dropna(subset=['上車時間'], inplace=True)
     if df.empty:
         print("警告：無資料可分析。")
         return
+    df['月份'] = df['上車時間'].dt.month
+    df['上車時段'] = df['上車時間'].dt.hour
+    df['星期'] = df['上車時間'].dt.dayofweek
+    df['日類型'] = np.where(df['星期'] < 5, '平日', '假日')
 
     # --- 使用者分類 (月票/非月票) ---
-    # 這部分的邏輯保持不變，因為這是此分析腳本的核心
     tickets_199 = ['悠遊-雲林縣199', '一卡通-雲林縣199', '愛金卡-雲林縣199', '雲林縣內通勤', '雲林']
     tickets_399 = ['大雲林區', '雲嘉嘉', '一卡通-雲林縣399', '愛金卡-雲林縣399', '悠遊-雲林縣399']
     conditions = [df['票種名稱'].isin(tickets_199), df['票種名稱'].isin(tickets_399)]
@@ -76,6 +74,7 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     monthly_pass_users_df = df[df['月票類型'] != '非月票'].copy()
     non_monthly_pass_users_df = df[df['月票類型'] == '非月票'].copy()
     
+    # 【新增】提示使用者即將開始輸出分析結果
     print("\n==============================================")
     print("          開始輸出各項分析結果          ")
     print("==============================================\n")
@@ -87,10 +86,9 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     if non_monthly_pass_users_df.empty:
         print("警告：沒有非月票用戶資料，將跳過此區塊的分析。")
     else:
-        # *** 移除票種為「優待」的資料 (邏輯保留) ***
+        # *** 新增處：移除票種為「優待」的資料 ***
         print(f"統一化後，非月票用戶共有 {len(non_monthly_pass_users_df)} 筆資料。")
         original_count = len(non_monthly_pass_users_df)
-        # 假設 '優待' 票種在 data_loader 清理後依然可能存在
         non_monthly_pass_users_df = non_monthly_pass_users_df[non_monthly_pass_users_df['票種名稱'] != '優待'].copy()
         removed_count = original_count - len(non_monthly_pass_users_df)
         print(f"正在移除票種為「優待」的資料... 已移除 {removed_count} 筆。")
@@ -102,17 +100,17 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
         
         # 1. 非月票用戶高額消費分析
         print("\n[圖表 1] 產生非月票用戶高額消費人數圖...")
-        # 【V2 修改】使用 data_loader 產生的 '上車月份' 欄位
-        monthly_spending = non_monthly_pass_users_df.groupby(['上車月份', '卡號'])['消費扣款'].sum().reset_index()
+        monthly_spending = non_monthly_pass_users_df.groupby(['月份', '卡號'])['消費扣款'].sum().reset_index()
         chart_data = []
-        for month in sorted(monthly_spending['上車月份'].unique()):
-            month_data = monthly_spending[monthly_spending['上車月份'] == month]
+        for month in sorted(monthly_spending['月份'].unique()):
+            month_data = monthly_spending[monthly_spending['月份'] == month]
             spent_between_199_399 = month_data[(month_data['消費扣款'] > 199) & (month_data['消費扣款'] < 399)]['卡號'].nunique()
             spent_over_399 = month_data[month_data['消費扣款'] > 399]['卡號'].nunique()
             chart_data.append({'月份': month, '消費門檻': '199-399 元', '人數': spent_between_199_399})
             chart_data.append({'月份': month, '消費門檻': '> 399 元', '人數': spent_over_399})
         chart_df = pd.DataFrame(chart_data)
         
+        # 【新增】印出分析結果
         print("\n--- [分析結果 1] 各月份非月票用戶高額消費人數 ---")
         print(chart_df.pivot(index='月份', columns='消費門檻', values='人數').fillna(0))
         print("--------------------------------------------------\n")
@@ -128,6 +126,7 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
         print("\n[圖表 2] 產生非月票用戶最常上車站點圖...")
         top_boarding = non_monthly_pass_users_df['上車站名'].value_counts().head(10)
         
+        # 【新增】印出分析結果
         print("\n--- [分析結果 2] 非月票用戶最常上車的 10 個站點 ---")
         print(top_boarding)
         print("--------------------------------------------------\n")
@@ -144,6 +143,7 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
         print("\n[圖表 3] 產生非月票用戶最常下車站點圖...")
         top_alighting = non_monthly_pass_users_df['下車站名'].value_counts().head(10)
         
+        # 【新增】印出分析結果
         print("\n--- [分析結果 3] 非月票用戶最常下車的 10 個站點 ---")
         print(top_alighting)
         print("--------------------------------------------------\n")
@@ -158,15 +158,15 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
         
         # 4. 非月票用戶搭車時段分佈 (平日/假日折線圖)
         print("\n[圖表 4] 產生非月票用戶平日與假日搭車時段分佈圖...")
-        # 【V2 修改】直接使用 '日期類型' 和 '上車小時'
-        hourly_usage_non_pass = non_monthly_pass_users_df.groupby(['日期類型', '上車小時']).size().reset_index(name='搭乘次數')
+        hourly_usage_non_pass = non_monthly_pass_users_df.groupby(['日類型', '上車時段']).size().reset_index(name='搭乘次數')
         
+        # 【新增】印出分析結果
         print("\n--- [分析結果 4] 非月票用戶平日與假日各時段搭乘次數分佈 ---")
-        print(hourly_usage_non_pass.pivot(index='上車小時', columns='日期類型', values='搭乘次數').fillna(0))
+        print(hourly_usage_non_pass.pivot(index='上車時段', columns='日類型', values='搭乘次數').fillna(0))
         print("------------------------------------------------------------\n")
         
         plt.figure(figsize=(12, 7))
-        sns.lineplot(data=hourly_usage_non_pass, x='上車小時', y='搭乘次數', hue='日期類型', marker='o', palette=['#1f77b4', '#ff7f0e'])
+        sns.lineplot(data=hourly_usage_non_pass, x='上車時段', y='搭乘次數', hue='日類型', marker='o', palette=['#1f77b4', '#ff7f0e'])
         plt.title('非月票用戶平日與假日各時段搭乘次數分佈', fontsize=16)
         plt.xlabel('小時 (24小時制)', fontsize=12); plt.ylabel('搭乘次數', fontsize=12)
         plt.xticks(np.arange(0, 24, 1)); plt.grid(True, which='both', linestyle='--', linewidth=0.5)
@@ -176,8 +176,6 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
 
         # 5. 消費介於 199-399 元用戶的熱門 OD
         print("\n[圖表 5] 產生非月票高額消費(199-399元)用戶熱門OD圖...")
-        # 【V2 修改】使用 '上車月份' 進行分組
-        monthly_spending = non_monthly_pass_users_df.groupby(['上車月份', '卡號'])['消費扣款'].sum().reset_index()
         cards_between_199_399 = monthly_spending[(monthly_spending['消費扣款'] > 199) & (monthly_spending['消費扣款'] < 399)]['卡號'].unique()
         high_spenders_199_df = non_monthly_pass_users_df[non_monthly_pass_users_df['卡號'].isin(cards_between_199_399)]
         if not high_spenders_199_df.empty:
@@ -185,6 +183,7 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
             complete_trips_high_199['OD'] = complete_trips_high_199['上車站名'] + ' -> ' + complete_trips_high_199['下車站名']
             top_od_high_199 = complete_trips_high_199['OD'].value_counts().head(10)
             
+            # 【新增】印出分析結果
             print("\n--- [分析結果 5] 非月票用戶(月消費 199-399元)最常搭乘的 10 個 OD ---")
             print(top_od_high_199)
             print("--------------------------------------------------------------------\n")
@@ -208,6 +207,7 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
             complete_trips_high_399['OD'] = complete_trips_high_399['上車站名'] + ' -> ' + complete_trips_high_399['下車站名']
             top_od_high_399 = complete_trips_high_399['OD'].value_counts().head(10)
             
+            # 【新增】印出分析結果
             print("\n--- [分析結果 6] 非月票用戶(月消費 > 399元)最常搭乘的 10 個 OD ---")
             print(top_od_high_399)
             print("------------------------------------------------------------------\n")
@@ -226,18 +226,22 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
         print("\n[圖表 7] 產生非月票用戶票種佔比圖...")
         ticket_type_counts = non_monthly_pass_users_df['票種名稱'].value_counts()
         
+        # 【新增】印出分析結果
         ticket_percentages = (ticket_type_counts / ticket_type_counts.sum() * 100).round(2)
         ticket_distribution_df = pd.DataFrame({'搭乘次數': ticket_type_counts, '佔比(%)': ticket_percentages})
         print("\n--- [分析結果 7] 非月票用戶票種分類佔比 ---")
         print(ticket_distribution_df)
         print("--------------------------------------------\n")
         
+        main_tickets = ticket_type_counts # 顯示所有類別
+
         plt.figure(figsize=(12, 10))
-        wedges, texts, autotexts = plt.pie(ticket_type_counts, autopct='%1.1f%%', startangle=140, pctdistance=0.85)
-        plt.legend(wedges, ticket_type_counts.index, title="票種分類", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+        wedges, texts, autotexts = plt.pie(main_tickets, autopct='%1.1f%%', startangle=140, pctdistance=0.85)
+        plt.legend(wedges, main_tickets.index, title="票種分類", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
         plt.title('非月票用戶票種分類佔比', fontsize=16)
         plt.setp(autotexts, size=10, weight="bold")
-        plt.axis('equal'); plt.tight_layout()
+        plt.axis('equal')
+        plt.tight_layout()
         plt.savefig(os.path.join(output_dir, '7_non_pass_ticket_type_distribution.png'))
         plt.close(); print(" -> 圖表 7 已儲存。")
 
@@ -254,6 +258,7 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     print("\n[圖表 8] 產生月票用戶最常上車站點圖...")
     top_boarding_pass = monthly_pass_users_df['上車站名'].value_counts().head(10)
     
+    # 【新增】印出分析結果
     print("\n--- [分析結果 8] 月票用戶最常上車的 10 個站點 ---")
     print(top_boarding_pass)
     print("--------------------------------------------------\n")
@@ -270,6 +275,7 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     print("\n[圖表 9] 產生月票用戶最常下車站點圖...")
     top_alighting_pass = monthly_pass_users_df['下車站名'].value_counts().head(10)
 
+    # 【新增】印出分析結果
     print("\n--- [分析結果 9] 月票用戶最常下車的 10 個站點 ---")
     print(top_alighting_pass)
     print("--------------------------------------------------\n")
@@ -288,6 +294,7 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     complete_trips['OD'] = complete_trips['上車站名'] + ' -> ' + complete_trips['下車站名']
     top_od = complete_trips['OD'].value_counts().head(10)
     
+    # 【新增】印出分析結果
     print("\n--- [分析結果 10] 月票用戶最常搭乘的 10 個 OD ---")
     print(top_od)
     print("---------------------------------------------------\n")
@@ -302,15 +309,15 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
 
     # 11. 月票用戶搭車時段分佈 (平日/假日折線圖)
     print("\n[圖表 11] 產生月票用戶平日與假日搭車時段分佈圖...")
-    # 【V2 修改】直接使用 '日期類型' 和 '上車小時'
-    hourly_usage_pass = monthly_pass_users_df.groupby(['日期類型', '上車小時']).size().reset_index(name='搭乘次數')
+    hourly_usage_pass = monthly_pass_users_df.groupby(['日類型', '上車時段']).size().reset_index(name='搭乘次數')
 
+    # 【新增】印出分析結果
     print("\n--- [分析結果 11] 月票用戶平日與假日各時段搭乘次數分佈 ---")
-    print(hourly_usage_pass.pivot(index='上車小時', columns='日期類型', values='搭乘次數').fillna(0))
+    print(hourly_usage_pass.pivot(index='上車時段', columns='日類型', values='搭乘次數').fillna(0))
     print("------------------------------------------------------------\n")
     
     plt.figure(figsize=(12, 7))
-    sns.lineplot(data=hourly_usage_pass, x='上車小時', y='搭乘次數', hue='日期類型', marker='o', palette=['#1f77b4', '#ff7f0e'])
+    sns.lineplot(data=hourly_usage_pass, x='上車時段', y='搭乘次數', hue='日類型', marker='o', palette=['#1f77b4', '#ff7f0e'])
     plt.title('月票用戶平日與假日各時段搭乘次數分佈', fontsize=16)
     plt.xlabel('小時 (24小時制)', fontsize=12); plt.ylabel('搭乘次數', fontsize=12)
     plt.xticks(np.arange(0, 24, 1)); plt.grid(True, which='both', linestyle='--', linewidth=0.5)
@@ -323,6 +330,7 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
     top_20_users_series = monthly_pass_users_df['卡號'].value_counts().head(20)
     masked_card_ids = [f"...{cid[-4:]}" for cid in top_20_users_series.index]
     
+    # 【新增】印出分析結果
     top_20_df_display = pd.DataFrame({
         '卡號 (末四碼)': masked_card_ids, 
         '總搭乘次數': top_20_users_series.values
@@ -357,9 +365,9 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
         user_data['OD'] = user_data['上車站名'] + ' -> ' + user_data['下車站名']
         most_common_od = user_data['OD'].mode()[0] if not user_data['OD'].mode().empty else "無"
         routes_summary = user_data['路線'].value_counts()
-        # 【V2 修改】使用 '上車小時'
-        user_hours = user_data['上車小時'].value_counts().sort_index()
+        user_hours = user_data['上車時段'].value_counts().sort_index()
 
+        # 【新增】印出該用戶的詳細分析結果
         print(f"\n--- [用戶分析] {masked_card_id} ---")
         print(f"總搭乘次數: {user['總搭乘次數']}")
         print(f"最常搭乘 OD: {most_common_od}")
@@ -399,9 +407,10 @@ def analyze_and_visualize_bus_data(file_path=config.BUS_UNIFIED_DATA_FILE):
         high_freq_days = daily_rides[daily_rides > 5]
         
         if not high_freq_days.empty:
+            # 使用 ANSI escape code 顯示黃色警告
             print(f"\033[93m  -> [注意] 用戶 {masked_card_id} 有單日搭乘超過5次的情況：\033[0m")
             for ride_date, count in high_freq_days.items():
-                print(f"\033[93m     - 日期: {ride_date}, 搭乘次數: {count}\033[0m")
+                print(f"\03f[93m     - 日期: {ride_date}, 搭乘次數: {count}\033[0m")
 
 
     print("\n所有分析與圖表產生完畢！")
