@@ -1,25 +1,29 @@
 # 檔名: config.py
 # =============================================================================
-#  組態設定檔 (V6 - 程式碼與資料路徑分離)
+#  組態設定檔 (V7 - 使用絕對路徑修正版)
 # =============================================================================
 #
 #  這個檔案包含了所有分析腳本中會用到的參數。
-#  - 程式碼統一放置於 `CODE_BASE_DIR`
-#  - 原始資料統一放置於 `DATA_BASE_DIR`
+#  - 透過 PROJECT_ROOT 自動偵測專案根目錄，解決相對路徑問題。
 #  - 所有分析結果都會被輸出到 `OUTPUT_BASE_DIR`
 #
 # =============================================================================
 
 import os
 
+# --- [專案根目錄設定] ---
+# 自動獲取 config.py 檔案所在的目錄，也就是專案的根目錄
+# 這是最關鍵的修改，讓所有路徑都有一個絕對的參考基準
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 # --- [通用設定] ---
 
-# 總輸出資料夾名稱
-OUTPUT_BASE_DIR = 'analysis_output'
+# 總輸出資料夾名稱 (基於專案根目錄)
+OUTPUT_BASE_DIR = os.path.join(PROJECT_ROOT, 'analysis_output')
 
-# 新增：程式碼與資料的基礎路徑
-CODE_BASE_DIR = 'code'
-DATA_BASE_DIR = 'data'
+# 程式碼與資料的基礎路徑 (基於專案根目錄)
+CODE_BASE_DIR = os.path.join(PROJECT_ROOT, 'code')
+DATA_BASE_DIR = os.path.join(PROJECT_ROOT, 'data')
 
 # --- [測試模式設定] ---
 TEST_MODE = True
