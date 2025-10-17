@@ -20,7 +20,6 @@ def load_and_save_data(output_filename=config.TRA_CLEANED_DATA_FILE):
 
     # *** 新增：測試模式 ***
     nrows_to_read = config.TEST_MODE_ROWS if config.TEST_MODE else None
-    reader = pd if config.TEST_MODE else dd # 根據模式選擇 reader
     
     if config.TEST_MODE:
         print(f"--- [測試模式已啟用] ---")
@@ -30,17 +29,27 @@ def load_and_save_data(output_filename=config.TRA_CLEANED_DATA_FILE):
     all_dfs = []
     data_dir = config.TRA_RAW_DATA_DIR
 
+    # 準備 read_csv 的參數
+    # *** 核心修改：只有在測試模式下才加入 nrows 參數 ***
+    read_csv_kwargs = {
+        'skiprows': [1],
+        'header': 0,
+    }
+    if config.TEST_MODE:
+        read_csv_kwargs['nrows'] = nrows_to_read
+        reader = pd
+    else:
+        reader = dd
+
     # --- 檔案3: 臺鐵非電子票證資料 ---
     non_ic_file = os.path.join(data_dir, '臺鐵非電子票證資料.csv')
     try:
-        # *** 核心修改：使用選擇的 reader 並加入 nrows ***
-        df = reader.read_csv(non_ic_file, skiprows=[1], header=0,
-                             dtype={'票面起站車站代碼': 'object', '票面迄站車站代碼': 'object', '票種次類型': 'object'},
-                             nrows=nrows_to_read)
+        dtype_non_ic = {'票面起站車站代碼': 'object', '票面迄站車站代碼': 'object', '票種次類型': 'object'}
+        # *** 核心修改：使用 **kwargs 傳遞參數 ***
+        df = reader.read_csv(non_ic_file, dtype=dtype_non_ic, **read_csv_kwargs)
         df['人次'] = 1
         df = df.rename(columns={'乘車日期': '日期','票面起站車站名稱': '起點','票面迄站車站名稱': '迄點','票種類型': '票種'})
         
-        # 如果是 pandas DataFrame，轉換為 dask
         if isinstance(df, pd.DataFrame):
             df = dd.from_pandas(df, npartitions=1)
             
@@ -54,14 +63,12 @@ def load_and_save_data(output_filename=config.TRA_CLEANED_DATA_FILE):
     # --- 檔案4: 臺鐵電子票證資料(TO1A) ---
     ic_file = os.path.join(data_dir, '臺鐵電子票證資料(TO1A).csv')
     try:
-        # *** 核心修改：使用選擇的 reader 並加入 nrows ***
-        df = reader.read_csv(ic_file, skiprows=[1], header=0,
-                             dtype={'刷卡進入車站代碼': 'object', '刷卡離開車站代碼': 'object', '票種次類型': 'object'},
-                             nrows=nrows_to_read)
+        dtype_ic = {'刷卡進入車站代碼': 'object', '刷卡離開車站代碼': 'object', '票種次類型': 'object'}
+        # *** 核心修改：使用 **kwargs 傳遞參數 ***
+        df = reader.read_csv(ic_file, dtype=dtype_ic, **read_csv_kwargs)
         df['人次'] = 1
         df = df.rename(columns={'資料代表日期(yyyy-MM-dd)': '日期','刷卡進入車站時間': '進站時間','刷卡離開車站時間': '出站時間','電子票證卡種': '卡種','持卡身分': '身分','刷卡進入車站名稱': '起點','刷卡離開車站名稱': '迄點'})
         
-        # 如果是 pandas DataFrame，轉換為 dask
         if isinstance(df, pd.DataFrame):
             df = dd.from_pandas(df, npartitions=1)
 
@@ -86,7 +93,6 @@ def load_and_save_data(output_filename=config.TRA_CLEANED_DATA_FILE):
     combined_df['日期類型'] = combined_df['日期類型'].astype('category').cat.set_categories(['平日', '假日'])
     print("資料準備完成！")
     
-    # --- (後續的儲存程式碼不變) ---
     print(f"\n--- 正在將清洗後的資料儲存至 '{output_filename}' ---")
     try:
         os.makedirs(os.path.dirname(output_filename), exist_ok=True)

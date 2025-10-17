@@ -93,13 +93,16 @@ TRA_STATION_TO_COUNTY = {
 # 公路客運分析的輸出子資料夾
 HIGHWAY_BUS_OUTPUT_DIR = os.path.join(OUTPUT_BASE_DIR, '4_公路客運')
 
-# ** [修改] **
 # 公路客運的原始資料路徑
 HIGHWAY_BUS_RAW_DATA_DIR = os.path.join(DATA_BASE_DIR, '公路客運')
 
-# 新版公路客運資料檔案路徑
-HIGHWAY_BUS_IC_FILE = os.path.join(HIGHWAY_BUS_RAW_DATA_DIR, '公路客運電子票證資料(TO2A).csv')
-HIGHWAY_BUS_NON_IC_FILE = os.path.join(HIGHWAY_BUS_RAW_DATA_DIR, '公路客運非電子票證資料.csv')
+# *** 【新增】 ***
+# 公路客運的程式碼路徑
+HIGHWAY_BUS_CODE_DIR = os.path.join(CODE_BASE_DIR, '公路客運')
+
+# *** 【新增】 ***
+# 統一後的公路客運資料檔名 (輸出到 code/公路客運/ 底下)
+HIGHWAY_BUS_UNIFIED_DATA_FILE = os.path.join(HIGHWAY_BUS_CODE_DIR, 'unified_highway_bus_data.csv')
 
 # --- [轉乘行為分析設定] ---
 
