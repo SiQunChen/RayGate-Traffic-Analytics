@@ -1,4 +1,4 @@
-# 檔名: run_all_analyses.py (V3 - 整合 config.py)
+# 檔名: run_all_analyses.py (V4 - 修正互動式腳本問題)
 # 請將此檔案放在專案的根目錄下 (與 "市區公車", "台鐵" 等資料夾同層)
 
 import os
@@ -30,34 +30,36 @@ def run_script(script_path):
         os.chdir(script_dir)
         
     try:
-        # 使用 errors='replace'，讓 subprocess 自動使用系統的預設編碼，
-        # 如果遇到無法解碼的字元，會用 '?' 取代，而不是讓程式崩潰。
+        # --- [修改核心] ---
+        # 移除 capture_output=True，讓子腳本可以直接與終端機互動。
+        # 這允許使用者看到 input() 提示並輸入回應。
+        # 輸出會即時顯示，而不是等到腳本結束才一次性印出。
         process = subprocess.run(
             [sys.executable, script_name], 
             check=True, 
-            capture_output=True, 
+            # capture_output=True, # <--- 就是這一行導致卡住，將其移除或註解掉
             text=True,
             errors='replace'
         )
         
-        print("--- [腳本輸出] ---")
-        if process.stdout:
-            print(process.stdout)
-        else:
-            print("(此腳本無標準輸出)")
-        print("--- [輸出結束] ---")
+        # 因為輸出已經即時顯示，所以不再需要下面的區塊
+        # print("--- [腳本輸出] ---")
+        # if process.stdout:
+        #     print(process.stdout)
+        # else:
+        #     print("(此腳本無標準輸出)")
+        # print("--- [輸出結束] ---")
+        
         print(f"✅ {script_name} 執行成功！")
         
     except FileNotFoundError:
         print(f"❌ 錯誤：找不到腳本 '{script_name}' 於路徑 '{script_dir}'。")
     except subprocess.CalledProcessError as e:
         print(f"❌ 錯誤：執行 {script_name} 時發生問題。")
+        # 在非擷取模式下，e.stdout 和 e.stderr 會是 None，因為輸出已經直接顯示在終端機
+        # 我們可以直接提示使用者查看上方的錯誤訊息
         print("--- [錯誤訊息] ---")
-        if e.stderr:
-            print(e.stderr)
-        if e.stdout:
-            print("--- [錯誤發生前的輸出] ---")
-            print(e.stdout)
+        print("請查看上方終端機的輸出以了解詳細錯誤。")
         print("--- [錯誤結束] ---")
         sys.exit(f"由於上述錯誤，分析流程已中止。")
     except Exception as e:
@@ -79,12 +81,12 @@ def main():
     print("🚀 開始執行全部分析流程...")
     print("將會依據 'config.py' 的設定進行分析。")
 
-    # --- 流程 1: 市區公車分析 ---
-    print("\n--- [階段一：市區公車分析] ---")
-    run_script('市區公車/unify_data.py')
-    run_script('市區公車/main_analyze_市區公車.py')
-    run_script('市區公車/douliu_analyze_市區公車.py')
-    run_script('市區公車/199_399_analyze.py')
+    # # --- 流程 1: 市區公車分析 ---
+    # print("\n--- [階段一：市區公車分析] ---")
+    # run_script('市區公車/unify_data.py')
+    # run_script('市區公車/main_analyze_市區公車.py')
+    # run_script('市區公車/douliu_analyze_市區公車.py')
+    # run_script('市區公車/199_399_analyze.py')
 
     # --- 流程 2: 乘客分群分析 ---
     print("\n--- [階段二：乘客分群分析 (Cluster Analysis)] ---")
