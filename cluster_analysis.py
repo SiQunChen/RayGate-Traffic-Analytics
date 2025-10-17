@@ -1,14 +1,14 @@
-# 檔名: cluster_analysis.py (V10 - 整合 config.py)
+# 檔名: cluster_analysis.py (V11 - 自動化版本)
 # =============================================================================
-# 雲林公車乘客 K-Means 分群完整流程
-# 
+# 雲林公車乘客 K-Means 分群完整流程 (自動化版本)
+#
 # 本腳本涵蓋以下步驟：
 # 1. 環境設定與資料載入 (從 config.py 讀取設定)
 # 2. 特徵工程
 # 3. 根據總乘車次數篩選乘客 (從 config.py 讀取門檻)
 # 4. 特徵準備
-# 5. (可選) 使用 PCA 進行降維
-# 6. 使用手肘法與輪廓係數尋找最佳 K 值
+# 5. (固定執行) 使用 PCA 進行降維
+# 6. 使用手肘法與輪廓係數自動尋找最佳 K 值
 # 7. 執行 K-Means 分群
 # 8. 分群結果分析與視覺化
 # 9. 整合 Tpass 資料
@@ -211,41 +211,6 @@ def prepare_features_for_clustering(features_df):
     print(f"特徵準備完成，共使用 {len(core_numerical_features)} 個數值特徵與 {len(core_categorical_features)} 個類別特徵進行分群。")
     return processed_features, model_df.index
 
-# # --- 步驟 3: 特徵準備 (使用所有特徵) ---
-# def prepare_features_for_clustering(features_df):
-#     """
-#     準備用於分群的特徵矩陣。
-#     本次更新：使用所有數值特徵與低基數類別特徵。
-#     """
-#     print("\n步驟 3: 正在準備特徵 (使用所有特徵)...")
-    
-#     # 將 '卡號' 設為索引，以便後續處理
-#     model_df = features_df.set_index('卡號')
-
-#     # 自動選取所有數值型特徵
-#     numerical_features = model_df.select_dtypes(include=np.number).columns.tolist()
-    
-#     # 明確定義要進行 One-Hot 編碼的低基數類別特徵
-#     # 排除高基數的站點、路線特徵，因為它們會產生過多維度，不適合直接分群
-#     categorical_features = ['主要票種']
-    
-#     print(f"  - 自動選取的數值特徵 ({len(numerical_features)}個): {numerical_features}")
-#     print(f"  - 手動選取的類別特徵 ({len(categorical_features)}個): {categorical_features}")
-
-#     # 建立一個處理流程
-#     preprocessor = ColumnTransformer(
-#         transformers=[
-#             ('num', StandardScaler(), numerical_features),
-#             ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
-#         ],
-#         remainder='drop' # 丟棄未指定的欄位 (例如高基數的站點名稱)
-#     )
-    
-#     processed_features = preprocessor.fit_transform(model_df)
-    
-#     print(f"特徵準備完成，共使用 {len(numerical_features)} 個數值特徵與 {len(categorical_features)} 個類別特徵進行分群。")
-#     return processed_features, model_df.index
-
 # --- 步驟 4: PCA (與原版相同) ---
 def apply_pca(processed_data, n_components=0.95):
     print(f"\n步驟 4: 正在使用 PCA 進行降維，目標保留 {n_components*100}% 的變異...")
@@ -260,12 +225,16 @@ def apply_pca(processed_data, n_components=0.95):
     plt.legend()
     pca_plot_path = os.path.join(output_dir, 'pca_explained_variance.png')
     plt.savefig(pca_plot_path)
-    plt.show()
+    # plt.show() # [修改] 移除顯示
+    plt.close() # [新增] 關閉畫布
     print(f"PCA 解釋變異數圖已儲存至 '{pca_plot_path}'。")
     return pca_data
 
-# --- 步驟 5: 尋找 K 值 (與原版相同) ---
+# --- 步驟 5: 尋找 K 值 (已修改) ---
 def find_optimal_k(scaled_data):
+    """
+    修改後：除了繪圖，還會回傳最佳 K 值。
+    """
     print("\n步驟 5: 正在使用手肘法與輪廓係數尋找最佳 K 值...")
     sse, silhouette_scores = [], []
     k_range = range(2, 20)
@@ -288,11 +257,15 @@ def find_optimal_k(scaled_data):
     fig.tight_layout(); plt.title('K-Means 最佳 K 值評估 (手肘法 vs. 輪廓係數)', pad=20)
     plt.xticks(k_range); plt.grid(True)
     plot_path = os.path.join(output_dir, 'optimal_k_evaluation.png')
-    plt.savefig(plot_path); plt.show()
+    plt.savefig(plot_path)
+    # plt.show() # [修改] 移除顯示
+    plt.close() # [新增] 關閉畫布
     print(f"評估圖表已儲存至 '{plot_path}'。")
+    
+    # [修改] 根據最高的輪廓係數決定最佳 K 值並回傳
     best_k_by_silhouette = k_range[np.argmax(silhouette_scores)]
-    print(f"提示：根據最高的輪廓係數，建議的 K 值為 {best_k_by_silhouette}。")
-    print("請綜合觀察兩條曲線來決定最終的 K 值。")
+    print(f"根據最高的輪廓係數，自動選擇的最佳 K 值為 {best_k_by_silhouette}。")
+    return best_k_by_silhouette
 
 # --- 步驟 6: K-Means (與原版相同) ---
 def apply_kmeans(scaled_data, k):
@@ -302,7 +275,7 @@ def apply_kmeans(scaled_data, k):
     print("K-Means 分群完成。")
     return clusters
 
-# --- 步驟 7: 結果分析 (與原版相同) ---
+# --- 步驟 7: 結果分析 (已修改) ---
 def analyze_and_visualize_clusters(features_df, clusters):
     print("\n步驟 7: 正在進行分群結果分析與視覺化...")
     features_df['群組'] = clusters
@@ -322,14 +295,22 @@ def analyze_and_visualize_clusters(features_df, clusters):
     spatial_summary.to_csv(spatial_summary_path, encoding='utf-8-sig')
     print(f"空間與身份特徵摘要已儲存至 '{spatial_summary_path}'。")
     numerical_summary.drop(columns='群組人數').plot(kind='bar', subplots=True, figsize=(16, 10), layout=(2, 4), legend=False, sharex=True, title='各群組數值特徵比較')
-    plt.tight_layout(); barchart_path = os.path.join(output_dir, 'cluster_feature_comparison.png'); plt.savefig(barchart_path); plt.show()
+    plt.tight_layout()
+    barchart_path = os.path.join(output_dir, 'cluster_feature_comparison.png')
+    plt.savefig(barchart_path)
+    # plt.show() # [修改] 移除顯示
+    plt.close()  # [新增] 關閉畫布
+    
     ticket_distribution = pd.crosstab(features_df['群組'], features_df['主要票種'])
     ticket_distribution.plot(kind='bar', stacked=True, figsize=(12, 7), colormap='viridis')
     plt.title('各群組主要票種分佈'); plt.xlabel('群組'); plt.ylabel('人數'); plt.xticks(rotation=0); plt.legend(title='主要票種'); plt.tight_layout()
-    ticket_plot_path = os.path.join(output_dir, 'cluster_ticket_distribution_plot.png'); plt.savefig(ticket_plot_path); plt.show()
+    ticket_plot_path = os.path.join(output_dir, 'cluster_ticket_distribution_plot.png')
+    plt.savefig(ticket_plot_path)
+    # plt.show() # [修改] 移除顯示
+    plt.close()  # [新增] 關閉畫布
     return features_df
 
-# --- 步驟 8: Tpass (與原版相同) ---
+# --- 步驟 8: Tpass (已修改) ---
 def integrate_tpass_data(clustered_users_df):
     print("\n步驟 8: 正在整合 Tpass 資料 (依據'主要票種'欄位)...")
     clustered_users_df['是否為Tpass用戶'] = (clustered_users_df['主要票種'] == '定期票')
@@ -337,14 +318,19 @@ def integrate_tpass_data(clustered_users_df):
     tpass_analysis.rename(columns={'count': '群組總人數', 'sum': 'Tpass用戶數'}, inplace=True)
     tpass_analysis['Tpass用戶比例'] = (tpass_analysis['Tpass用戶數'] / tpass_analysis['群組總人數']) * 100
     print("\n各群組 Tpass 用戶分析："); print(tpass_analysis)
-    tpass_analysis_path = os.path.join(output_dir, 'tpass_analysis.csv'); tpass_analysis.to_csv(tpass_analysis_path, encoding='utf-8-sig')
+    tpass_analysis_path = os.path.join(output_dir, 'tpass_analysis.csv')
+    tpass_analysis.to_csv(tpass_analysis_path, encoding='utf-8-sig')
     print(f"Tpass 分析結果已儲存至 '{tpass_analysis_path}'。")
-    plt.figure(figsize=(10, 6)); sns.barplot(x=tpass_analysis.index, y=tpass_analysis['Tpass用戶比例'])
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=tpass_analysis.index, y=tpass_analysis['Tpass用戶比例'])
     plt.title('各群組 Tpass 用戶比例'); plt.xlabel('群組'); plt.ylabel('Tpass 用戶比例 (%)')
-    tpass_plot_path = os.path.join(output_dir, 'tpass_user_ratio.png'); plt.savefig(tpass_plot_path); plt.show()
+    tpass_plot_path = os.path.join(output_dir, 'tpass_user_ratio.png')
+    plt.savefig(tpass_plot_path)
+    # plt.show() # [修改] 移除顯示
+    plt.close() # [新增] 關閉畫布
     return clustered_users_df
 
-# --- 主執行流程 ---
+# --- 主執行流程 (已修改) ---
 if __name__ == '__main__':
     # 從 config 讀取檔案路徑
     raw_df = load_and_preprocess_data(filepath=config.CLUSTER_INPUT_FILE)
@@ -366,20 +352,12 @@ if __name__ == '__main__':
         
         processed_data, card_ids = prepare_features_for_clustering(user_features_df)
         
-        use_pca = input("\n是否要使用 PCA 進行降維優化？ (y/n): ").lower()
-        if use_pca == 'y':
-            data_for_clustering = apply_pca(processed_data)
-        else:
-            print("跳過 PCA 步驟，使用原始核心特徵進行分群。")
-            data_for_clustering = processed_data
+        # [修改] 固定使用 PCA，移除使用者輸入
+        print("\n固定使用 PCA 進行降維優化...")
+        data_for_clustering = apply_pca(processed_data)
             
-        find_optimal_k(data_for_clustering)
-        
-        try:
-            optimal_k = int(input("\n請根據評估圖表，輸入您選擇的最佳 K 值 (建議 4~8): "))
-        except (ValueError, TypeError):
-            print("輸入無效，將使用預設值 K=5。")
-            optimal_k = 5
+        # [修改] 自動尋找並使用最佳 K 值，移除使用者輸入
+        optimal_k = find_optimal_k(data_for_clustering)
         
         clusters = apply_kmeans(data_for_clustering, k=optimal_k)
         
