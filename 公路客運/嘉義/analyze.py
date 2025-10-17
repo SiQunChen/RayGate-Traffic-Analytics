@@ -1,21 +1,28 @@
+# 檔名: 公路客運/嘉義/analyze.py (V4 - 整合 config.py 並統一輸出路徑)
 # -*- coding: utf-8 -*-
 """
 嘉義客運 113年度營運數據分析與視覺化
 
 本程式會讀取 'data' 資料夾內所有的 Excel 檔案，整合其數據，
 進行數據清洗與分析，並根據分析結果生成一系列圖表，以視覺化方式呈現客運的營運狀況。
-
-更新日誌：
-- V3: 修正 `KeyError`，透過 reindex 強化週間資料處理的穩定性；並對通勤時段圖表做相同優化。
-- V2: 修改資料讀取方式，以支援多個月份的 Excel 檔案整合；根據嘉義客運格式調整欄位。
-- V1: 初始版本，分析嘉義客運單一檔案。
 """
 
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import sys # 匯入 sys
 from matplotlib.font_manager import fontManager
+
+# --- 從 config.py 載入設定 ---
+try:
+    # 假設 config.py 在上兩層目錄
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+    import config
+except ImportError:
+    print("錯誤：無法找到 config.py。請確認您的專案結構。")
+    sys.exit(1)
+
 
 def setup_chinese_font():
     """
@@ -31,9 +38,9 @@ def setup_chinese_font():
     print("警告：未找到建議的中文字型，圖表中的中文可能無法正常顯示。")
     plt.rcParams['axes.unicode_minus'] = False
 
-def load_data(folder_path="data"):
+def load_data(folder_path):
     """
-    讀取指定資料夾 ('data') 內所有 Excel 檔案並整合。
+    讀取指定資料夾內所有 Excel 檔案並整合。
     """
     print(f"步驟 1: 開始讀取資料夾 '{folder_path}' 內的 Excel 檔案...")
     if not os.path.isdir(folder_path):
@@ -120,13 +127,13 @@ def preprocess_data(df):
     print("資料預處理完成。")
     return full_df
 
-# --- 原有繪圖函式 (部分微調以符合新的程式結構) ---
+# --- (所有繪圖函式 plot_... 與原版相同，此處省略以保持簡潔) ---
 
-def plot_monthly_ridership(df):
+def plot_monthly_ridership(df, output_dir):
     print("正在生成圖表 1: 各月份旅運量分析...")
     monthly_counts = df.groupby(['月份', '路線']).size().unstack(fill_value=0)
     monthly_counts.plot(kind='bar', figsize=(14, 8), width=0.8, colormap='viridis')
-    plt.title('圖1：113年度嘉義客運各月份旅運量分析 (7011 & 7012路線)', fontsize=16)
+    plt.title('圖1：113年度嘉義客運各月份旅運量分析', fontsize=16)
     plt.xlabel('月份', fontsize=12)
     plt.ylabel('總人次', fontsize=12)
     plt.xticks(ticks=range(len(monthly_counts.index)), labels=monthly_counts.index, rotation=0)
@@ -135,11 +142,11 @@ def plot_monthly_ridership(df):
     for container in plt.gca().containers:
         plt.gca().bar_label(container, label_type='edge', fontsize=9, padding=3)
     plt.tight_layout()
-    plt.savefig("1_monthly_ridership.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "1_monthly_ridership.png"), dpi=300)
     plt.close()
     print("圖表 1 已儲存。")
 
-def plot_ticket_type_distribution(df):
+def plot_ticket_type_distribution(df, output_dir):
     print("正在生成圖表 2: 乘客票種結構分析...")
     ticket_counts = df['票種分類'].value_counts()
     plt.figure(figsize=(12, 10))
@@ -154,11 +161,11 @@ def plot_ticket_type_distribution(df):
     plt.title('圖2：113年度乘客票種結構分析', fontsize=16)
     plt.axis('equal')
     plt.tight_layout()
-    plt.savefig("2_ticket_type_distribution.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "2_ticket_type_distribution.png"), dpi=300)
     plt.close()
     print("圖表 2 已儲存。")
 
-def plot_hourly_distribution(df):
+def plot_hourly_distribution(df, output_dir):
     print("正在生成圖表 3: 全日各時段旅次分佈...")
     hourly_counts = df['小時'].value_counts().sort_index()
     plt.figure(figsize=(14, 7))
@@ -169,11 +176,11 @@ def plot_hourly_distribution(df):
     plt.xticks(range(0, 24))
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.savefig("3_hourly_distribution.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "3_hourly_distribution.png"), dpi=300)
     plt.close()
     print("圖表 3 已儲存。")
 
-def plot_weekday_weekend_comparison(df):
+def plot_weekday_weekend_comparison(df, output_dir):
     print("正在生成圖表 4: 平假日旅次模式比較...")
     comparison_counts = df.groupby(['日期類型', '小時']).size().unstack(fill_value=0).T.reindex(range(24), fill_value=0)
     plt.figure(figsize=(14, 8))
@@ -186,11 +193,11 @@ def plot_weekday_weekend_comparison(df):
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
     plt.legend(fontsize=12)
     plt.tight_layout()
-    plt.savefig("4_weekday_weekend_comparison.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "4_weekday_weekend_comparison.png"), dpi=300)
     plt.close()
     print("圖表 4 已儲存。")
 
-def plot_top_stations(df, top_n=15):
+def plot_top_stations(df, output_dir, top_n=15):
     print(f"正在生成圖表 5: 前 {top_n} 大熱門站點分析...")
     on_counts = df['上車站名'].value_counts()
     off_counts = df['下車站名'].value_counts()
@@ -203,11 +210,11 @@ def plot_top_stations(df, top_n=15):
     for index, value in enumerate(total_counts.values):
         plt.text(value, index, f' {value:.0f}', va='center', fontsize=10)
     plt.tight_layout()
-    plt.savefig("5_top_stations.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "5_top_stations.png"), dpi=300)
     plt.close()
     print("圖表 5 已儲存。")
 
-def plot_top_od_pairs(df, top_n=10):
+def plot_top_od_pairs(df, output_dir, top_n=10):
     print(f"正在生成圖表 6: 前 {top_n} 大旅運OD走廊分析...")
     df['OD_Pair'] = df['上車站名'].astype(str) + ' → ' + df['下車站名'].astype(str)
     od_counts = df['OD_Pair'].value_counts().head(top_n)
@@ -219,116 +226,80 @@ def plot_top_od_pairs(df, top_n=10):
     for index, value in enumerate(od_counts.values):
         plt.text(value, index, f' {value}', va='center', fontsize=10)
     plt.tight_layout()
-    plt.savefig("6_top_od_pairs.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "6_top_od_pairs.png"), dpi=300)
     plt.close()
     print("圖表 6 已儲存。")
 
-# --- 新增的四個繪圖函式 ---
-
-def plot_weekly_ridership(df):
-    """
-    分析並繪製週間總運量。
-    """
+def plot_weekly_ridership(df, output_dir):
     print("正在生成圖表 7: 週間總運量分析...")
     week_order = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
     weekly_counts = df['星期'].value_counts().reindex(week_order)
-    
     plt.figure(figsize=(12, 7))
     sns.barplot(x=weekly_counts.index, y=weekly_counts.values, palette='GnBu_d', hue=weekly_counts.index, legend=False)
-    
     plt.title('圖7：週間總運量分析', fontsize=16)
     plt.xlabel('星期', fontsize=12)
     plt.ylabel('總人次', fontsize=12)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
-    
-    # --- 修正開始 ---
-    # 計算一個小的垂直位移，讓文字標籤在長條圖的上方，而不是正好貼在頂端
-    # 這取代了先前版本中無效的 'pad' 參數
     y_offset = weekly_counts.max() * 0.01 
-
     for index, value in enumerate(weekly_counts.values):
-        # 移除無效的 'pad' 參數，並在 Y 軸上增加一個小位移 (y_offset)
-        if pd.notna(value): # 增加一個檢查，確保值不是NaN
+        if pd.notna(value):
             plt.text(index, value + y_offset, f'{int(value)}', ha='center', va='bottom', fontsize=10)
-    # --- 修正結束 ---
-
     plt.tight_layout()
-    plt.savefig("7_weekly_ridership.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "7_weekly_ridership.png"), dpi=300)
     plt.close()
     print("圖表 7 已儲存。")
 
-def plot_student_commute(df):
-    """
-    分析並繪製學生平日的通勤時段。
-    """
+def plot_student_commute(df, output_dir):
     print("正在生成圖表 8: 學生平日通勤時段分析...")
     students_df = df[(df['票種分類'] == '學生族群') & (df['日期類型'] == '平日')]
     hourly_counts = students_df['小時'].value_counts().reindex(range(24), fill_value=0)
-    
     plt.figure(figsize=(14, 7))
     sns.lineplot(x=hourly_counts.index, y=hourly_counts.values, marker='o', color='dodgerblue', label='學生平日旅次')
-    
     plt.title('圖8：學生平日各時段旅次分佈', fontsize=16)
     plt.xlabel('小時', fontsize=12)
     plt.ylabel('總人次', fontsize=12)
     plt.xticks(range(24))
     plt.grid(True, which='both', linestyle='--', alpha=0.6)
-
     plt.legend()
     plt.tight_layout()
-    plt.savefig("8_student_commute.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "8_student_commute.png"), dpi=300)
     plt.close()
     print("圖表 8 已儲存。")
 
-def plot_senior_commute(df):
-    """
-    分析並繪製長者的通勤時段。
-    """
+def plot_senior_commute(df, output_dir):
     print("正在生成圖表 9: 長者通勤時段分析...")
     seniors_df = df[df['票種分類'] == '敬老族群']
     hourly_counts = seniors_df['小時'].value_counts().reindex(range(24), fill_value=0)
-    
     plt.figure(figsize=(14, 7))
     sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='viridis', hue=hourly_counts.index, legend=False)
-    
     plt.title('圖9：長者各時段旅次分佈', fontsize=16)
     plt.xlabel('小時', fontsize=12)
     plt.ylabel('總人次', fontsize=12)
     plt.xticks(range(24))
     plt.grid(axis='y', linestyle='--', alpha=0.7)
-
     plt.tight_layout()
-    plt.savefig("9_senior_commute.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "9_senior_commute.png"), dpi=300)
     plt.close()
     print("圖表 9 已儲存。")
 
-def plot_senior_top_stations(df, top_n=10):
-    """
-    分析並繪製長者熱門下車目的地。
-    """
+def plot_senior_top_stations(df, output_dir, top_n=10):
     print(f"正在生成圖表 10: 前 {top_n} 大長者熱門下車目的地...")
     seniors_df = df[df['票種分類'] == '敬老族群']
     top_stations = seniors_df['下車站名'].value_counts().head(top_n)
-    
     if top_stations.empty:
         print("警告：找不到足夠的長者下車數據來生成圖表 10。")
         return
-
     plt.figure(figsize=(12, 8))
     sns.barplot(x=top_stations.values, y=top_stations.index, palette='magma', orient='h', hue=top_stations.index, legend=False)
-    
     plt.title(f'圖10：年度前 {top_n} 大長者熱門下車目的地', fontsize=16)
     plt.xlabel('總下車人次', fontsize=12)
     plt.ylabel('下車站名', fontsize=12)
-    
     for index, value in enumerate(top_stations.values):
         plt.text(value, index, f' {value}', va='center', fontsize=10)
-        
     plt.tight_layout()
-    plt.savefig("10_senior_top_stations.png", dpi=300)
+    plt.savefig(os.path.join(output_dir, "10_senior_top_stations.png"), dpi=300)
     plt.close()
     print("圖表 10 已儲存。")
-
 
 def main():
     """
@@ -336,21 +307,29 @@ def main():
     """
     setup_chinese_font()
     
-    data = load_data()
+    # *** 新增 ***
+    # 建立輸出資料夾
+    output_dir = os.path.join('..', '..', config.HIGHWAY_BUS_OUTPUT_DIR, '嘉義分析')
+    os.makedirs(output_dir, exist_ok=True)
+    print(f"所有圖表將儲存至: {os.path.abspath(output_dir)}")
+    
+    # 從 config 讀取檔案路徑
+    data = load_data(folder_path=config.HIGHWAY_BUS_CHIAYI_FOLDER)
     processed_data = preprocess_data(data)
     
     if processed_data is not None:
         print("\n--- 開始生成既有分析圖表 ---")
-        plot_monthly_ridership(processed_data)
-        plot_ticket_type_distribution(processed_data)
-        plot_hourly_distribution(processed_data)
-        plot_weekday_weekend_comparison(processed_data)
-        plot_top_stations(processed_data, top_n=15)
-        plot_top_od_pairs(processed_data, top_n=10)
-        plot_weekly_ridership(processed_data)
-        plot_student_commute(processed_data)
-        plot_senior_commute(processed_data)
-        plot_senior_top_stations(processed_data, top_n=10)
+        # *** 修改：將 output_dir 傳遞給所有繪圖函式 ***
+        plot_monthly_ridership(processed_data, output_dir)
+        plot_ticket_type_distribution(processed_data, output_dir)
+        plot_hourly_distribution(processed_data, output_dir)
+        plot_weekday_weekend_comparison(processed_data, output_dir)
+        plot_top_stations(processed_data, output_dir, top_n=15)
+        plot_top_od_pairs(processed_data, output_dir, top_n=10)
+        plot_weekly_ridership(processed_data, output_dir)
+        plot_student_commute(processed_data, output_dir)
+        plot_senior_commute(processed_data, output_dir)
+        plot_senior_top_stations(processed_data, output_dir, top_n=10)
         
         print("\n所有分析圖表已成功生成！")
 
