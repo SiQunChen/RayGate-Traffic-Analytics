@@ -177,55 +177,99 @@ def main():
         print("--- [路線篩選未啟用] ---\n將處理所有偵測到的路線資料。\n" + "-"*26 + "\n")
 
 
-    all_data = []
+    all_data = [] # 用於收集所有檔案處理完的最終 DataFrame
+    
     for file in files:
         print(f"正在處理檔案: {os.path.basename(file)}")
+        
+        # *** 核心修改：使用 chunksize 解決記憶體不足問題 ***
         try:
-            df = pd.read_csv(file, header=0, nrows=nrows_to_read, low_memory=False, on_bad_lines='skip')
-            if df.columns[0] == 'Authority':
-                 df = pd.read_csv(file, skiprows=[1], header=0, nrows=nrows_to_read, low_memory=False, on_bad_lines='skip')
+            # 設定每個區塊的行數。
+            # 如果是測試模式，nrows_to_read 依然會生效。
+            # 如果不是測試模式，我們會一次處理 500,000 筆。
+            chunk_size_to_use = 500000
+            
+            # 用於收集單一檔案中，所有已處理完畢的區塊
+            processed_chunks_for_this_file = []
+            
+            # 準備 read_csv 的共用參數
+            iterator_kwargs = {
+                'header': 0, 
+                'nrows': nrows_to_read, 
+                'low_memory': False, 
+                'on_bad_lines': 'skip'
+            }
+            
+            # 檢查是否有 'Authority' 標頭問題
+            try:
+                # 預讀第一行來檢查欄位
+                temp_df_check = pd.read_csv(file, header=0, nrows=1, low_memory=False, on_bad_lines='skip')
+                if temp_df_check.columns[0] == 'Authority':
+                    print("    - 偵測到 'Authority' 標頭，將自動跳過第二行。")
+                    iterator_kwargs['skiprows'] = [1]
+            except Exception as e:
+                print(f"  - 警告：預讀檔案標頭失敗 ({e})，將使用預設方式讀取。")
+
+            print(f"    - 開始以 {chunk_size_to_use} 筆為單位分批讀取...")
+
+            # 使用 with pd.read_csv(...) as reader: 來建立一個迭代器
+            with pd.read_csv(file, chunksize=chunk_size_to_use, **iterator_kwargs) as reader:
+                
+                for i, df_chunk in enumerate(reader):
+                    print(f"    - 正在處理第 {i+1} 區塊 (大小: {len(df_chunk)} 筆)...")
+                    
+                    try:
+                        # --- 套用你原有的處理邏輯 ---
+                        # 1. 檢核篩選
+                        df_chunk = filter_by_validation_result(df_chunk)
+                        if df_chunk.empty:
+                            print(f"      - 區塊 {i+1} 在檢核篩選後沒有資料，跳過。")
+                            continue
+                        
+                        # 2. 格式處理
+                        processed_df_chunk = process_eticket_data(df_chunk) if '卡號' in df_chunk.columns else process_non_eticket_data(df_chunk)
+                        
+                        # 3. 路線篩選
+                        if target_routes:
+                            original_rows = len(processed_df_chunk)
+                            # 確保 '路線' 欄位是字串型別，以便比對
+                            processed_df_chunk['路線'] = processed_df_chunk['路線'].astype(str)
+                            processed_df_chunk = processed_df_chunk[processed_df_chunk['路線'].isin(target_routes)]
+                            filtered_rows = len(processed_df_chunk)
+                            
+                            if original_rows > filtered_rows:
+                                print(f"      - 已根據 config 篩選路線，此區塊資料從 {original_rows} 筆減少至 {filtered_rows} 筆。")
+                        
+                        # 4. 加入列表 (僅在篩選後仍有資料時才加入)
+                        if not processed_df_chunk.empty:
+                            processed_chunks_for_this_file.append(processed_df_chunk)
+                            
+                    except Exception as e:
+                        print(f"    - 錯誤: 處理區塊 {i+1} 時發生錯誤: {e}")
+                        print("      - 將跳過此錯誤區塊並繼續處理下一個...")
+            
+            # --- 區塊處理迴圈結束 ---
+
+            # 如果這個檔案有產生任何處理過的區塊，才將它們合併起來
+            if processed_chunks_for_this_file:
+                print(f"    - 正在合併檔案 '{os.path.basename(file)}' 的所有已處理區塊...")
+                all_data.append(pd.concat(processed_chunks_for_this_file, ignore_index=True))
+                print(f"    - 檔案 '{os.path.basename(file)}' 處理完成。")
+            else:
+                print(f"    - 檔案 '{os.path.basename(file)}' 處理完成，但未產生任何有效資料。")
+
         except Exception as e:
+            # 捕捉讀取檔案時的致命錯誤 (例如檔案不存在或完全無法解析)
             print(f"  - 無法讀取檔案 {os.path.basename(file)}，錯誤訊息: {e}")
             continue
-
-        try:
-            # 1. 檢核篩選
-            df = filter_by_validation_result(df)
-            if df.empty:
-                print(f"    - 檔案 '{os.path.basename(file)}' 在檢核篩選後沒有資料，跳過。")
-                continue
-            
-            # 2. 格式處理
-            processed_df = process_eticket_data(df) if '卡號' in df.columns else process_non_eticket_data(df)
-            
-            # 3. ***【*** 新增的篩選步驟 ***】***
-            if target_routes:
-                original_rows = len(processed_df)
-                # 確保 '路線' 欄位是字串型別，以便比對
-                processed_df['路線'] = processed_df['路線'].astype(str)
-                processed_df = processed_df[processed_df['路線'].isin(target_routes)]
-                filtered_rows = len(processed_df)
-                
-                if original_rows > filtered_rows:
-                    print(f"    - 已根據 config 篩選路線，資料從 {original_rows} 筆減少至 {filtered_rows} 筆。")
-                elif filtered_rows == 0 and original_rows > 0:
-                    print(f"    - 檔案中 {original_rows} 筆資料均不符合 config 路線清單，已全部移除。")
-            # ***【*** 篩選步驟結束 ***】***
-            
-            # 4. 加入列表 (僅在篩選後仍有資料時才加入)
-            if not processed_df.empty:
-                all_data.append(processed_df)
-            
-            print(f"    - 檔案 '{os.path.basename(file)}' 處理完成。")
-            
-        except Exception as e:
-            print(f"    - 錯誤: 處理檔案 {os.path.basename(file)} 時發生錯誤: {e}")
+    
+    # --- 檔案迴圈結束 ---
 
     if not all_data:
         print("\n處理完成，但沒有產生任何有效資料 (可能所有資料都已被篩選掉)。")
         return
 
-    # --- 合併與最終處理 ---
+    # --- 合併與最終處理 (此處邏輯不變) ---
     print("\n開始合併所有已處理的資料...")
     final_df = pd.concat(all_data, ignore_index=True)
     final_df = clean_and_enrich_data(final_df)
@@ -241,12 +285,9 @@ def main():
             final_df[col] = None
     final_df = final_df[TARGET_COLUMNS]
     
-    # *** 核心修改：定義公路客運的統一化輸出檔案路徑 ***
-    # 建議在 config.py 中新增此變數
     if hasattr(config, 'HIGHWAY_BUS_UNIFIED_DATA_FILE'):
         output_filename = config.HIGHWAY_BUS_UNIFIED_DATA_FILE
     else:
-        # 如果 config.py 中未定義，則提供一個預設路徑
         print("警告：config.py 中未找到 'HIGHWAY_BUS_UNIFIED_DATA_FILE' 設定。")
         output_filename = os.path.join(os.path.dirname(__file__), 'unified_highway_bus_data.csv')
         print(f"將使用預設路徑：{output_filename}")

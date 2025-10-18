@@ -90,15 +90,15 @@ def main():
     # print("\n--- [階段二：乘客分群分析 (Cluster Analysis)] ---")
     # run_script(os.path.join(code_dir, 'cluster_analysis.py'))
 
-    # # --- 流程 3: 台鐵資料分析 ---
-    # print("\n--- [階段三：台鐵資料分析] ---")
-    # run_script(os.path.join(code_dir, '台鐵', 'main_analysis_台鐵.py'))
+    # --- 流程 3: 台鐵資料分析 ---
+    print("\n--- [階段三：台鐵資料分析] ---")
+    run_script(os.path.join(code_dir, '台鐵', 'main_analysis_台鐵.py'))
     
-    # --- 流程 4: 公路客運分析 ---
-    print("\n--- [階段四：公路客運分析] ---")
-    run_script(os.path.join(code_dir, '公路客運', 'data_loader_公路客運.py'))
-    run_script(os.path.join(code_dir, '公路客運', 'main_analyze_公路客運.py'))
-    run_script(os.path.join(code_dir, '公路客運', 'analyze_定期票.py'))
+    # # --- 流程 4: 公路客運分析 ---
+    # print("\n--- [階段四：公路客運分析] ---")
+    # run_script(os.path.join(code_dir, '公路客運', 'data_loader_公路客運.py'))
+    # run_script(os.path.join(code_dir, '公路客運', 'main_analyze_公路客運.py'))
+    # run_script(os.path.join(code_dir, '公路客運', 'analyze_定期票.py'))
     
     # # --- 流程 5: 轉乘行為分析 (可選) ---
     # print("\n--- [階段五：轉乘行為分析] ---")
