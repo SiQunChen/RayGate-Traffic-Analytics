@@ -20,7 +20,7 @@ except ImportError:
 #  資料代碼對應 (根據 PDF 文件)
 # =============================================================================
 TICKET_TYPE_MAP = {'1': '單程票', '2': '來回票', '3': '回數票', '4': '定期票', '5': '團體票', '9': '其他'}
-HOLDER_TYPE_MAP = {'A': '普通', 'B': '學生', 'C01': '敬老', 'CO2': '愛心', 'C09': '其他優待', 'D': '員工', 'X': '無法區別'}
+HOLDER_TYPE_MAP = {'A': '普通', 'B': '學生', 'C01': '敬老', 'C02': '愛心', 'C09': '其他優待', 'D': '員工', 'X': '無法區別'}
 DIRECTION_MAP = {'0': '去程', '1': '返程', '2': '迴圈'}
 
 # =============================================================================
@@ -108,13 +108,28 @@ def clean_and_enrich_data(df):
     if original_rows > len(df):
         print(f"    - 移除了 {original_rows - len(df)} 筆 '上車時間' 無效的資料。")
 
-    # 3. 標記不完整旅次
+    # 3. 標記不完整旅次 (*** 這是修改後的區塊 ***)
     print("  - 標記不完整旅次...")
-    df['旅次是否完整'] = ~(
-        df['下車時間'].isnull() | pd.isna(df['下車時間']) |
-        df['下車站名'].isnull() | (df['下車站名'].astype(str).str.lower().isin(['', '0', 'nan', '未提供']))
-    )
-    df.loc[df['下車時間'] == df['上車時間'], '旅次是否完整'] = False
+    
+    # 找出電子票證的資料 (持卡身分 '非電子票證' 是在 process_non_eticket_data 中設定的)
+    is_eticket_mask = (df['持卡身分'] != '非電子票證')
+
+    # 1. 預設所有旅次為 True (包含所有 '非電子票證' 資料)
+    df['旅次是否完整'] = True
+
+    # 2. 找出電子票證中「不完整」的條件
+    # 條件1: 下車時間為空
+    condition_no_alight_time = df['下車時間'].isnull() | pd.isna(df['下車時間'])
+    # 條件2: 下車站名為空或無效
+    condition_no_alight_stop = df['下車站名'].isnull() | (df['下車站名'].astype(str).str.lower().isin(['', '0', 'nan', '未提供']))
+
+    # 3. 結合所有不完整的條件
+    is_incomplete_eticket = (condition_no_alight_time | condition_no_alight_stop)
+    
+    # 4. 只在「電子票證」資料上 (is_eticket_mask)，將「不完整」的旅次 (is_incomplete_eticket) 設為 False
+    df.loc[is_eticket_mask & is_incomplete_eticket, '旅次是否完整'] = False
+    # (*** 修改區塊結束 ***)
+
 
     # 4. 新增衍生欄位 (特徵工程)
     print("  - 新增分析用衍生欄位...")
@@ -127,7 +142,10 @@ def clean_and_enrich_data(df):
     complete_trips_mask = df['旅次是否完整'] == True
     df.loc[complete_trips_mask, '旅次時長(分)'] = \
         (df.loc[complete_trips_mask, '下車時間'] - df.loc[complete_trips_mask, '上車時間']).dt.total_seconds() / 60
-    df['旅次時長(分)'].fillna(0, inplace=True) # 將不完整旅次的時長填 0
+    # 將不完整旅次(包含非電子票證)的時長填 0
+    # (備註: 非電子票證的旅次時長在此邏輯下也會是 0，因為它們的 complete_trips_mask 是 True，
+    # 但 process_non_eticket_data 中設定了 下車時間 == 上車時間)
+    df['旅次時長(分)'].fillna(0, inplace=True) 
 
     print("資料清理與特徵工程完成。")
     return df
