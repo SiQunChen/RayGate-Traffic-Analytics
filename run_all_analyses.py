@@ -100,17 +100,17 @@ def main():
     run_script(os.path.join(code_dir, '公路客運', 'main_analyze_公路客運.py'))
     run_script(os.path.join(code_dir, '公路客運', 'analyze_定期票.py'))
     
-    # --- 流程 5: 轉乘行為分析 (可選) ---
-    print("\n--- [階段五：轉乘行為分析] ---")
-    if config.BUS_TRANSFER_STATION or config.TRA_TRANSFER_STATION:
-        print("偵測到已設定轉乘分析目標車站，即將開始分析...")
-        if config.BUS_TRANSFER_STATION:
-            run_script(os.path.join(code_dir, '市區公車', 'station_transfer_analyze.py'))
-        if config.TRA_TRANSFER_STATION:
-            run_script(os.path.join(code_dir, '台鐵', 'station_transfer_analyze.py'))
-    else:
-        print("在 'config.py' 中未設定轉乘分析的目標車站。")
-        print("已跳過此分析階段。")
+    # # --- 流程 5: 轉乘行為分析 (可選) ---
+    # print("\n--- [階段五：轉乘行為分析] ---")
+    # if config.BUS_TRANSFER_STATION or config.TRA_TRANSFER_STATION:
+    #     print("偵測到已設定轉乘分析目標車站，即將開始分析...")
+    #     if config.BUS_TRANSFER_STATION:
+    #         run_script(os.path.join(code_dir, '市區公車', 'station_transfer_analyze.py'))
+    #     if config.TRA_TRANSFER_STATION:
+    #         run_script(os.path.join(code_dir, '台鐵', 'station_transfer_analyze.py'))
+    # else:
+    #     print("在 'config.py' 中未設定轉乘分析的目標車站。")
+    #     print("已跳過此分析階段。")
 
     end_time = time.time()
     print("\n🎉🎉🎉 恭喜！所有分析流程已全部執行完畢！ 🎉🎉🎉")

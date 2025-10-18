@@ -38,7 +38,8 @@ def load_and_preprocess_data(filepath=config.HIGHWAY_BUS_UNIFIED_DATA_FILE):
     print("開始讀取已預處理的公路客運資料...")
     try:
         # *** 核心修改 2: 讀取公路客運的資料檔案 ***
-        df = pd.read_csv(filepath, dtype={'路線': str})
+        # 增加 low_memory=False 參數以處理混合型別的警告
+        df = pd.read_csv(filepath, dtype={'路線': str}, low_memory=False)
     except FileNotFoundError:
         print(f"錯誤：找不到檔案 '{filepath}'。請確保已先執行 data_loader_公路客運.py。")
         return None
@@ -46,7 +47,7 @@ def load_and_preprocess_data(filepath=config.HIGHWAY_BUS_UNIFIED_DATA_FILE):
     # 將時間相關欄位轉換為 datetime 物件
     df['上車時間'] = pd.to_datetime(df['上車時間'], errors='coerce')
     df['下車時間'] = pd.to_datetime(df['下車時間'], errors='coerce')
-    
+
     # 移除時間格式轉換後可能產生的無效資料
     df.dropna(subset=['上車時間'], inplace=True)
 
@@ -68,6 +69,7 @@ def plot_monthly_ridership(df):
     plt.title('公路客運 每月總運量分析', fontsize=18, fontweight='bold')
     plt.xlabel('月份', fontsize=12)
     plt.ylabel('總搭乘人次', fontsize=12)
+    # 動態生成月份標籤，確保與資料匹配
     plt.xticks(ticks=range(len(monthly_counts)), labels=[f'{int(i)}月' for i in monthly_counts.index])
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
@@ -77,20 +79,23 @@ def plot_monthly_ridership(df):
 def plot_weekly_ridership(df):
     print("正在產生圖表：週間總運量分析...")
     weekly_counts = df['上車星期'].value_counts().sort_index()
-    day_names = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
+    # *** 錯誤修正：不再寫死 day_names，而是根據實際資料動態產生標籤 ***
+    day_map = {0: '星期一', 1: '星期二', 2: '星期三', 3: '星期四', 4: '星期五', 5: '星期六', 6: '星期日'}
+    dynamic_day_names = [day_map[i] for i in weekly_counts.index]
 
     print("\n--- 2. 週間總運量分析結果 ---")
     weekly_counts_display = weekly_counts.copy()
-    weekly_counts_display.index = day_names
+    weekly_counts_display.index = dynamic_day_names # 使用動態產生的標籤
     print(weekly_counts_display)
     print("---------------------------------\n")
-    
+
     plt.figure(figsize=(12, 7))
     sns.barplot(x=weekly_counts.index, y=weekly_counts.values, palette='plasma', hue=weekly_counts.index, legend=False)
     plt.title('公路客運 週間總運量分析', fontsize=18, fontweight='bold')
     plt.xlabel('星期', fontsize=12)
     plt.ylabel('總搭乘人次', fontsize=12)
-    plt.xticks(ticks=range(7), labels=day_names, rotation=45)
+    # *** 錯誤修正：使用動態標籤來設定X軸刻度 ***
+    plt.xticks(ticks=range(len(weekly_counts)), labels=dynamic_day_names, rotation=45)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(output_folder, '2_週間總運量分析.png'))
@@ -218,12 +223,12 @@ def plot_top_od_pairs(df, n=15):
 if __name__ == '__main__':
     # 變數名稱改為 highway_bus_data 以符合情境
     highway_bus_data = load_and_preprocess_data()
-    
+
     if highway_bus_data is not None:
         print("\n==============================================")
         print("       開始輸出公路客運各項分析結果       ")
         print("==============================================\n")
-        
+
         plot_monthly_ridership(highway_bus_data)
         plot_weekly_ridership(highway_bus_data)
         plot_top_routes(highway_bus_data)
@@ -232,10 +237,10 @@ if __name__ == '__main__':
         plot_hourly_ridership(highway_bus_data)
         plot_top_stations(highway_bus_data)
         plot_top_od_pairs(highway_bus_data)
-        
+
         # 註：公路客運資料較不具備學生/長者通勤的典型模式，
-        # 因此暫時移除 plot_student_pattern_per_route 和 
+        # 因此暫時移除 plot_student_pattern_per_route 和
         # plot_elderly_pattern_and_destinations 這兩項分析。
         # 如果未來需要，也可以隨時加回來。
-        
+
         print("\n所有公路客運分析圖表已成功產生並儲存於 '{}' 資料夾中。".format(output_folder))
