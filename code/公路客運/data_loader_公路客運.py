@@ -3,6 +3,7 @@
 #       並根據資料格式文件將代碼轉換為可讀文字。
 # 說明: 此腳本的邏輯完全比照 data_loader_市區公車.py，
 #       以確保資料處理的一致性。
+# V2 : 新增 config 路線篩選功能
 import pandas as pd
 import os
 import glob
@@ -166,6 +167,15 @@ def main():
     if not files:
         print(f"錯誤：在 '{data_dir}' 資料夾中找不到任何 .csv 檔案。")
         return
+        
+    # *** 新增：檢查 config 中是否有篩選清單 ***
+    target_routes = config.HIGHWAY_BUS_TARGET_ROUTES
+    if target_routes:
+        print(f"--- [路線篩選已啟用] ---\n將只保留以下 {len(target_routes)} 條路線的資料：")
+        print(f"{', '.join(target_routes)}\n" + "-"*26 + "\n")
+    else:
+        print("--- [路線篩選未啟用] ---\n將處理所有偵測到的路線資料。\n" + "-"*26 + "\n")
+
 
     all_data = []
     for file in files:
@@ -179,18 +189,40 @@ def main():
             continue
 
         try:
+            # 1. 檢核篩選
             df = filter_by_validation_result(df)
             if df.empty:
                 print(f"    - 檔案 '{os.path.basename(file)}' 在檢核篩選後沒有資料，跳過。")
                 continue
+            
+            # 2. 格式處理
             processed_df = process_eticket_data(df) if '卡號' in df.columns else process_non_eticket_data(df)
-            all_data.append(processed_df)
+            
+            # 3. ***【*** 新增的篩選步驟 ***】***
+            if target_routes:
+                original_rows = len(processed_df)
+                # 確保 '路線' 欄位是字串型別，以便比對
+                processed_df['路線'] = processed_df['路線'].astype(str)
+                processed_df = processed_df[processed_df['路線'].isin(target_routes)]
+                filtered_rows = len(processed_df)
+                
+                if original_rows > filtered_rows:
+                    print(f"    - 已根據 config 篩選路線，資料從 {original_rows} 筆減少至 {filtered_rows} 筆。")
+                elif filtered_rows == 0 and original_rows > 0:
+                    print(f"    - 檔案中 {original_rows} 筆資料均不符合 config 路線清單，已全部移除。")
+            # ***【*** 篩選步驟結束 ***】***
+            
+            # 4. 加入列表 (僅在篩選後仍有資料時才加入)
+            if not processed_df.empty:
+                all_data.append(processed_df)
+            
             print(f"    - 檔案 '{os.path.basename(file)}' 處理完成。")
+            
         except Exception as e:
             print(f"    - 錯誤: 處理檔案 {os.path.basename(file)} 時發生錯誤: {e}")
 
     if not all_data:
-        print("\n處理完成，但沒有產生任何有效資料。")
+        print("\n處理完成，但沒有產生任何有效資料 (可能所有資料都已被篩選掉)。")
         return
 
     # --- 合併與最終處理 ---
@@ -223,6 +255,7 @@ def main():
     
     final_df.to_csv(output_filename, index=False, encoding='utf-8-sig')
     print(f"\n公路客運資料已成功整合、清理並儲存至: {output_filename}")
+    print(f"最終整合資料筆數: {len(final_df)}")
 
 if __name__ == '__main__':
     main()
