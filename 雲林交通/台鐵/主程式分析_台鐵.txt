@@ -1,0 +1,207 @@
+CSV 結果將儲存至 'analysis_results/' 資料夾。
+圖表將儲存至 'charts/' 資料夾。
+Matplotlib 與 Seaborn 中文字體已設定為 'Microsoft JhengHei'。
+--- 開始載入並整合所有資料來源 ---
+
+>>> 正在檢查 '臺鐵非電子票證資料.csv' 中的 '進站時間' 欄位格式...
+'臺鐵非電子票證資料.csv' 中的時間格式皆符合預期。
+成功載入: 臺鐵非電子票證資料.csv
+
+>>> 正在檢查 '臺鐵電子票證資料(TO1A).csv' 中的 '進站時間' 欄位格式...
+'臺鐵電子票證資料(TO1A).csv' 中的時間格式皆符合預期。
+成功載入: 臺鐵電子票證資料(TO1A).csv
+
+正在合併所有資料來源...
+資料準備完成！
+
+--- [設定分析區間：彰化到嘉義] ---
+已將資料範圍限定在 19 個車站內，後續將僅分析此區間的資料。
+
+--- [分析一：黃金路線分析] ---
+全台客運量最高的 Top 20 路線 (OD):
+起點  迄點
+彰化  員林    514756
+員林  彰化    480210
+嘉義  民雄    211058
+    大林    208892
+大林  嘉義    206530
+斗六  嘉義    194639
+民雄  嘉義    192083
+嘉義  斗六    191266
+員林  田中    166747
+彰化  田中    163940
+田中  彰化    162782
+    員林    161348
+斗六  斗南    133249
+斗南  斗六    124713
+彰化  嘉義    106752
+嘉義  彰化    102976
+斗南  嘉義    102829
+嘉義  斗南    102585
+彰化  斗六    100300
+斗六  林內     97773
+Name: 人次, dtype: int64
+結果已儲存至 analysis_results\analysis_hot_od.csv
+Seaborn 圖表已儲存至 charts\chart_hot_od.png
+
+--- [分析二：尖峰時段分析 (高精度 - 5分鐘間隔)] ---
+註：此分析僅針對有提供進站時間的電子票證與非電子票證資料。
+平日 vs. 假日 各時段旅運量分佈 (每5分鐘):
+日期類型     平日    假日
+時段_5分
+0      1574  1039
+1       588   369
+2      1571   949
+3      1350   970
+4       229   142
+...     ...   ...
+283     785   513
+284     260   163
+285     180   101
+286      94    41
+287      85    38
+
+[276 rows x 2 columns]
+高精度分析結果已儲存至 analysis_results\analysis_peak_5min.csv
+Seaborn 圖表已儲存至 charts\chart_peak_5min_清晨.png
+Seaborn 圖表已儲存至 charts\chart_peak_5min_上午.png
+Seaborn 圖表已儲存至 charts\chart_peak_5min_下午.png
+Seaborn 圖表已儲存至 charts\chart_peak_5min_傍晚至午夜.png
+
+--- [分析三：票證使用分析] ---
+電子票證(IC) vs. 非電子票證(N-IC) 使用量:
+票證分類
+N-IC    1712534
+IC      5932543
+Name: 人次, dtype: int64
+
+Top 10 各類電子票證卡種使用量:
+卡種
+EasyCard    4110272
+iPASS       1660614
+icash        161657
+Name: 人次, dtype: int64
+結果已儲存至 analysis_results\analysis_ticket_class.csv 與 analysis_results\analysis_card_type.csv
+Seaborn 圖表已儲存至 charts\chart_ticket_class.png
+Seaborn 圖表已儲存至 charts\chart_card_type.png
+
+--- [分析四：持卡身分分析] ---
+Top 10 旅運量持卡身分:
+身分
+A      4766990
+C01     665478
+B       309205
+C02     172665
+C09      18205
+Name: 人次, dtype: int64
+結果已儲存至 analysis_results\analysis_holder_type.csv
+Seaborn 圖表已儲存至 charts\chart_holder_type.png
+
+--- [分析五：平均旅次時間分析] ---
+平均旅次時間最長的 Top 20 路線:
+起點  迄點
+彰化  南靖    115.539472
+    水上    115.257337
+南靖  彰化    114.780303
+水上  彰化    114.163895
+南靖  花壇    111.936111
+花壇  南靖    110.309677
+水上  花壇    110.040000
+花壇  水上    106.456136
+南靖  大村    105.060317
+水上  大村    104.575750
+大村  南靖    104.472222
+員林  南靖    102.717945
+大村  水上    101.947117
+南靖  永靖    101.667083
+彰化  嘉北    100.049323
+嘉北  彰化     98.594967
+南靖  員林     98.294460
+員林  水上     98.202863
+花壇  嘉義     97.657996
+嘉義  花壇     97.450482
+Name: 旅次時間(分), dtype: float64
+結果已儲存至 analysis_results\analysis_avg_travel_time.csv
+Seaborn 圖表已儲存至 charts\chart_avg_travel_time.png
+
+--- [分析六：通勤走廊識別] ---
+平日上午尖峰(7-9點) Top 10 通勤路線:
+起點  迄點
+員林  彰化    78523
+彰化  員林    75956
+田中  員林    37305
+大林  嘉義    35816
+田中  彰化    33345
+嘉義  斗六    27156
+斗南  斗六    26303
+民雄  嘉義    26295
+斗六  嘉義    25700
+林內  斗六    21721
+Name: 人次, dtype: int64
+
+平日傍晚尖峰(17-19點) Top 10 通勤路線:
+起點  迄點
+彰化  員林    115964
+員林  彰化     95756
+彰化  田中     41512
+員林  田中     37701
+嘉義  民雄     37521
+    大林     36610
+斗六  嘉義     33771
+    斗南     30709
+嘉義  斗六     25303
+大林  嘉義     24339
+Name: 人次, dtype: int64
+結果已儲存至 analysis_results\analysis_morning_commute.csv 與 analysis_results\analysis_evening_commute.csv
+Seaborn 圖表已儲存至 charts\chart_morning_commute.png
+Seaborn 圖表已儲存至 charts\chart_evening_commute.png
+
+--- [分析七：特定區間流量分析 (彰化-雲林-嘉義)] ---
+
+--- 特定路線流量分析結果 ---
+起點縣市  迄點縣市
+彰化縣   彰化縣     3013103
+嘉義市   嘉義縣      587074
+雲林縣   雲林縣      569972
+嘉義縣   嘉義市      569394
+雲林縣   彰化縣      438825
+彰化縣   雲林縣      432847
+雲林縣   嘉義市      394520
+嘉義市   雲林縣      389192
+彰化縣   嘉義市      226025
+嘉義市   彰化縣      221715
+雲林縣   嘉義縣      193761
+嘉義縣   雲林縣      192281
+      彰化縣      121807
+彰化縣   嘉義縣      113532
+嘉義縣   嘉義縣      101988
+嘉義市   嘉義市       79041
+Name: 人次, dtype: int64
+詳細流量分析結果已儲存至 analysis_results\analysis_specific_flows.csv
+Seaborn 圖表已儲存至 charts\chart_specific_flows.png
+
+--- [分析八：熱門車站分析] ---
+彰化至嘉義客運量最高的 Top 20 車站:
+迄點
+彰化    2558232
+員林    2327915
+嘉義    2193274
+斗六    1806686
+田中     946011
+大林     849375
+民雄     801558
+斗南     794361
+社頭     471187
+二水     429234
+林內     398736
+花壇     369798
+嘉北     352728
+水上     267184
+大村     262193
+永靖     216387
+石榴     104856
+石龜      76731
+南靖      63708
+Name: 人次, dtype: int64
+結果已儲存至 analysis_results\analysis_hot_stations.csv
+Seaborn 圖表已儲存至 charts\chart_hot_stations.png
